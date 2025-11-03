@@ -7,9 +7,10 @@ class CategoryRegex(Enum):
     UNDEF = r"312"
     FUZZY_VALUE = r"321"
     FUZZY_COLUMN = r"123"
-    TYPE0 = r"\b(?:INT|INTEGER|REAL|DATE|INTERVAL|FUZZY)\b"
-    TYPE1 = r"\b(?:CHARACTER|CHAR|VARCHAR|BIT|FLOAT|TIME|TIMESTAMP)\b"
-    TYPE2 = r"\b(?:DEC|DECIMAL|NUMERIC)\b"
+    TYPE = r"\b(?:INT|INTEGER|REAL|DATE|INTERVAL|FUZZY|CHARACTER|CHAR|VARCHAR|BIT|FLOAT|TIME|TIMESTAMP|DEC|DECIMAL|NUMERIC)\b"
+    #TYPE0 = r"\b(?:INT|INTEGER|REAL|DATE|INTERVAL|FUZZY)\b"
+    #TYPE1 = r"\b(?:CHARACTER|CHAR|VARCHAR|BIT|FLOAT|TIME|TIMESTAMP)\b"
+    #TYPE2 = r"\b(?:DEC|DECIMAL|NUMERIC)\b"
     ADD = r"\bADD\b"
     SELECT = r"\bSELECT\b"
     FROM = r"\bFROM\b"
@@ -76,9 +77,10 @@ class Category(Enum):
     UNDEF = 0
     FUZZY_VALUE = auto()
     FUZZY_COLUMN = auto()
-    TYPE0 = auto()
-    TYPE1 = auto()
-    TYPE2 = auto()
+    TYPE = auto()
+    #TYPE0 = auto()
+    #TYPE1 = auto()
+    #TYPE2 = auto()
     ADD = auto()
     SELECT = auto()
     FROM = auto()

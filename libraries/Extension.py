@@ -6,11 +6,11 @@ from libraries.Environment import Environment
 from libraries.Lexer import SQLLexer
 from libraries.FunctionHub import FunctionHub
 import pandas as pd
-from libraries.LALR.LALRAnalyzer import LALRAnalyzer
+from libraries.LALR.LALRAnalyzerCST import LALRAnalyzerCST
 
 class ExtensionCursor(cursor):
     def __init__(self, *args, **kwargs):
-        self.parser = LALRAnalyzer(gr)
+        self.parser = LALRAnalyzerCST(gr)
         self.fh = None
         self.table = None
         super().__init__(*args, **kwargs)
@@ -40,7 +40,7 @@ class ExtensionCursor(cursor):
                 pd.set_option('display.max_columns', None)
                 print(self.parser.history)
                 print("Syntax error")
-            tree = self.parser.build_tree(tokens)
+            tree = self.parser.parse(tokens)
         except Exception as e:
             print(e.args)
 

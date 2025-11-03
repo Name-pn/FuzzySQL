@@ -5,7 +5,7 @@ from libraries.LALR.LALRTable import LALRTable
 from save_table import table_name
 
 
-class LALRAnalyzer(Analyzer):
+class LALRAnalyzerCST(Analyzer):
     def _create_table(self):
         table = pd.read_pickle(table_name)
         return table

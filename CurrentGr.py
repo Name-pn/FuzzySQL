@@ -232,12 +232,11 @@ lst.append(Production(NonTerminal("Unary"), ProductionBody([NonTerminal("Factor"
 lst.append(Production(NonTerminal("Factor"), ProductionBody([Terminal(Category.OPEN_BRACKET),
                                                              NonTerminal("Expr"),
                                                              Terminal(Category.CLOSE_BRACKET)])))
-lst.append(Production(NonTerminal("Factor"), ProductionBody([Terminal(Category.FUZZY_VALUE),
-                                                             Terminal(Category.COLON),
-                                                             Terminal(Category.ID)])))
-lst.append(Production(NonTerminal("Factor"), ProductionBody([Terminal(Category.FUZZY_COLUMN),
-                                                             Terminal(Category.COLON),
-                                                             Terminal(Category.ID)])))
+lst.append(Production(NonTerminal("Factor"), ProductionBody([NonTerminal("FValue")])))
+lst.append(Production(NonTerminal("Factor"), ProductionBody([NonTerminal("FColumn")])))
+# lst.append(Production(NonTerminal("Factor"), ProductionBody([Terminal(Category.FUZZY_COLUMN),
+#                                                              Terminal(Category.COLON),
+#                                                              Terminal(Category.ID)])))
 lst.append(Production(NonTerminal("Factor"), ProductionBody([NonTerminal("ValueOrID")])))
 lst.append(Production(NonTerminal("Name"), ProductionBody([NonTerminal("Name"),
                                                            Terminal(Category.DOT),
@@ -250,18 +249,29 @@ lst.append(Production(NonTerminal("Columns"), ProductionBody([NonTerminal("Colum
 lst.append(Production(NonTerminal("Column"), ProductionBody([Terminal(Category.ID),
                                                              NonTerminal("Type"),
                                                              NonTerminal("Attrs")])))
-lst.append(Production(NonTerminal("Type"), ProductionBody([Terminal(Category.TYPE0)])))
-lst.append(Production(NonTerminal("Type"), ProductionBody([Terminal(Category.TYPE1),
+lst.append(Production(NonTerminal("Type"), ProductionBody([Terminal(Category.TYPE)])))
+lst.append(Production(NonTerminal("Type"), ProductionBody([Terminal(Category.TYPE),
                                                            Terminal(Category.OPEN_BRACKET),
                                                            Terminal(Category.NUMBER),
                                                            Terminal(Category.CLOSE_BRACKET)])))
-lst.append(Production(NonTerminal("Type"), ProductionBody([Terminal(Category.TYPE2),
+lst.append(Production(NonTerminal("Type"), ProductionBody([Terminal(Category.TYPE),
                                                            Terminal(Category.OPEN_BRACKET),
                                                            Terminal(Category.NUMBER),
                                                            Terminal(Category.COMMA),
                                                            Terminal(Category.NUMBER),
-                                                           Terminal(Category.CLOSE_BRACKET)
-                                                           ])))
+                                                           Terminal(Category.CLOSE_BRACKET)])))
+#lst.append(Production(NonTerminal("Type"), ProductionBody([Terminal(Category.TYPE0)])))
+# lst.append(Production(NonTerminal("Type"), ProductionBody([Terminal(Category.TYPE1),
+#                                                            Terminal(Category.OPEN_BRACKET),
+#                                                            Terminal(Category.NUMBER),
+#                                                            Terminal(Category.CLOSE_BRACKET)])))
+# lst.append(Production(NonTerminal("Type"), ProductionBody([Terminal(Category.TYPE2),
+#                                                            Terminal(Category.OPEN_BRACKET),
+#                                                            Terminal(Category.NUMBER),
+#                                                            Terminal(Category.COMMA),
+#                                                            Terminal(Category.NUMBER),
+#                                                            Terminal(Category.CLOSE_BRACKET)
+#                                                            ])))
 lst.append(Production(NonTerminal("Attrs"), ProductionBody([Epsilon()])))
 lst.append(Production(NonTerminal("Attrs"), ProductionBody([NonTerminal("Attr"),
                                                             NonTerminal("Attrs")])))
@@ -293,5 +303,8 @@ lst.append(Production(NonTerminal("InsertValues"), ProductionBody([NonTerminal("
 lst.append(Production(NonTerminal("InsertValues"), ProductionBody([NonTerminal("InsertValue"),
                                                                    Terminal(Category.COMMA),
                                                                    NonTerminal("InsertValues")])))
+lst.append(Production(NonTerminal("FValue"), ProductionBody([Terminal(Category.FUZZY_VALUE),
+                                                             Terminal(Category.COLON),
+                                                             Terminal(Category.ID)])))
 
 gr = Grammar(lst, NonTerminal("S\'"))

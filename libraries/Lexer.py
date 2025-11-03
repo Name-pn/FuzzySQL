@@ -27,7 +27,8 @@ class SQLLexer():
                 pass
             case Category.FUZZY_VALUE.value | Category.FUZZY_COLUMN.value | Category.DOT.value | Category.COMMA.value | Category.SEPARATOR.value | Category.OPEN_BRACKET.value | Category.CLOSE_BRACKET.value | Category.SELECT.value | Category.FROM.value | Category.WHERE.value | Category.GROUP.value | Category.BY.value | Category.ORDER.value | Category.OR.value | Category.AND.value | Category.NOT.value | Category.EXISTS.value | Category.HAVING.value | Category.JOIN.value | Category.LEFT.value | Category.RIGHT.value | Category.TABLE.value | Category.INNER.value | Category.MODIFY.value | Category.REMOVE.value | Category.ADD.value | Category.CREATE.value | Category.SET.value | Category.INSERT.value | Category.INTO.value | Category.VALUES.value | Category.ALTER.value | Category.RENAME.value | Category.DROP.value | Category.UNIQUE.value | Category.PRIMARY.value | Category.KEY.value | Category.DEFAULT.value | Category.NULL.value | Category.DELETE.value | Category.COLON.value | Category.UPDATE.value | Category.EQUAL.value | Category.MULTIPLICATION.value | Category.ASC.value | Category.DESC.value | Category.WITH.value:
                 lst.append(Terminal(Category(index)))
-            case Category.TYPE0.value | Category.TYPE1.value | Category.TYPE2.value | Category.ID.value | Category.REAL_NUMBER.value | Category.NUMBER.value | Category.STRING.value | Category.COMPARISON.value | Category.OPERATION.value | Category.PLUS_AND_MINUS.value:
+            # | Category.TYPE1.value | Category.TYPE2.value
+            case Category.TYPE.value | Category.ID.value | Category.REAL_NUMBER.value | Category.NUMBER.value | Category.STRING.value | Category.COMPARISON.value | Category.OPERATION.value | Category.PLUS_AND_MINUS.value:
                 lst.append(LTerminal(lexem, Category(index)))
             case _:
                 print(f"Лексема {lexem}, индекс {index}")

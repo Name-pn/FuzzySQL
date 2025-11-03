@@ -7,7 +7,7 @@ from libraries.Symbol.LTerminal import LTerminal
 from libraries.Symbol.NonTerminal import NonTerminal
 from libraries.Symbol.SymbolType import SymbolType
 from libraries.Symbol.Terminal import Category, Terminal
-from libraries.Tree import TreeNode
+from libraries.Tree.TreeCst import TreeCstNode
 
 class CategoryColumn(Enum):
     COMMON = auto()
@@ -20,30 +20,30 @@ index_to_column = {
     3: "d",
 }
 
-def broadcast(tree: TreeNode, fh: FunctionHub):
+def broadcast(tree: TreeCstNode, fh: FunctionHub):
     table = Environment()
     table.load()
     return broadcast_body(tree, table, fh)
 
-def is_modify_command(tree:TreeNode):
+def is_modify_command(tree:TreeCstNode):
     return tree.children[0].symbol == Terminal(Category.MODIFY)
 
-def is_remove_command(tree:TreeNode):
+def is_remove_command(tree:TreeCstNode):
     return tree.children[0].symbol == Terminal(Category.REMOVE)
 
-def is_create_command(tree:TreeNode):
+def is_create_command(tree:TreeCstNode):
     return tree.children[0].symbol == Terminal(Category.CREATE)
 
-def is_alter_command(tree:TreeNode):
+def is_alter_command(tree:TreeCstNode):
     return tree.children[0].symbol == Terminal(Category.ALTER)
 
-def is_alter_modify_command(tree:TreeNode):
+def is_alter_modify_command(tree:TreeCstNode):
     return tree.children[0].symbol == Terminal(Category.ALTER) and tree.children[3].symbol == Terminal(Category.MODIFY)
 
-def is_alter_drop_command(tree:TreeNode):
+def is_alter_drop_command(tree:TreeCstNode):
     return tree.children[0].symbol == Terminal(Category.ALTER) and tree.children[3].symbol == Terminal(Category.DROP)
 
-def is_add_command(tree:TreeNode):
+def is_add_command(tree:TreeCstNode):
     return len(tree.children) == 11 and tree.children[0].symbol == Terminal(Category.ADD) and \
            tree.children[1].symbol.ttype == Category.ID and \
            tree.children[2].symbol.ttype == Category.OPEN_BRACKET and \
@@ -56,37 +56,37 @@ def is_add_command(tree:TreeNode):
            tree.children[9].symbol.type == SymbolType.NONTERMINAL and \
            tree.children[10].symbol.ttype == Category.CLOSE_BRACKET
 
-def is_set_command(tree:TreeNode):
+def is_set_command(tree:TreeCstNode):
     return len(tree.children) == 3 and tree.children[0].symbol == Terminal(Category.SET) and \
            tree.children[1].symbol.ttype == Category.ID and tree.children[2].symbol.type == SymbolType.NONTERMINAL
 
-def is_alter_rename_command(tree:TreeNode):
+def is_alter_rename_command(tree:TreeCstNode):
     return len(tree.children) == 6 and \
            tree.children[0].symbol == Terminal(Category.ALTER) and \
            tree.children[3].symbol == Terminal(Category.RENAME)
 
-def is_alter_add_command(tree:TreeNode):
+def is_alter_add_command(tree:TreeCstNode):
     return len(tree.children) == 7 and \
            tree.children[0].symbol == Terminal(Category.ALTER) and \
            tree.children[3].symbol == Terminal(Category.ADD)
 
-def is_insert_into_with_columns(tree:TreeNode):
+def is_insert_into_with_columns(tree:TreeCstNode):
     return tree.children[3].symbol == Terminal(Category.OPEN_BRACKET) and \
            tree.children[0].symbol == Terminal(Category.INSERT)
 
-def is_insert_into_without_columns(tree:TreeNode):
+def is_insert_into_without_columns(tree:TreeCstNode):
     return tree.children[3].symbol == Terminal(Category.VALUES) and \
            tree.children[0].symbol == Terminal(Category.INSERT)
 
 
-def is_update_set(tree: TreeNode):
+def is_update_set(tree: TreeCstNode):
     return len(tree.children) == 5 and \
            tree.children[0].symbol == Terminal(Category.UPDATE)
 
-def output(tree:TreeNode):
+def output(tree:TreeCstNode):
     print("Node symbol = ", tree.symbol, "Synth = ", tree.synth)
 
-def synthAll(tree:TreeNode):
+def synthAll(tree:TreeCstNode):
     res = ""
     for child in tree.children:
         if child.synth == ",":
@@ -117,7 +117,7 @@ def attrStr(arrAttr, column):
             continue
     return res
 
-def dictToStrAdd(tree:TreeNode, table: Environment):
+def dictToStrAdd(tree:TreeCstNode, table: Environment):
     tree.synth = uncoverFuzzy(tree.synth, table)
     n = len(tree.synth['id'])
     res = ""
@@ -129,7 +129,7 @@ def dictToStrAdd(tree:TreeNode, table: Environment):
             res += f"ADD COLUMN {tree.synth['id'][i]} {tree.synth['type'][i].upper()},\n"
     return res[:-2]
 
-def dictToStrModify(tree:TreeNode, table: Environment, tableName: str, fh:FunctionHub):
+def dictToStrModify(tree:TreeCstNode, table: Environment, tableName: str, fh:FunctionHub):
     n = len(tree.synth['id'])
     res = ""
     for i in range(0, n):
@@ -195,7 +195,7 @@ def uncoverFuzzy(d: dict, table:Environment):
                 res['attrs'].append(d['attrs'][i])
     return res
 
-def dictToStrCreate(tree: TreeNode, table:Environment):
+def dictToStrCreate(tree: TreeCstNode, table:Environment):
     tree.synth = uncoverFuzzy(tree.synth, table)
     n = len(tree.synth['id'])
     res = ""
@@ -206,7 +206,7 @@ def dictToStrCreate(tree: TreeNode, table:Environment):
             res += tree.synth['id'][i] + " " + tree.synth['type'][i] + ", "
     return res[:-2]
 
-def dictToStrDrop(tree: TreeNode, table:Environment):
+def dictToStrDrop(tree: TreeCstNode, table:Environment):
     res = ""
     d = tree.synth
     for type, id in zip(d["type"], d["id"]):
@@ -218,14 +218,14 @@ def dictToStrDrop(tree: TreeNode, table:Environment):
                 res += "DROP COLUMN " + name + ",\n"
     return res[:-2]
 
-def dictToStrInsert(tree: TreeNode, table:Environment):
+def dictToStrInsert(tree: TreeCstNode, table:Environment):
     tree.synth = uncoverFuzzyWithoutAttrs(tree.synth, table)
     res = ""
     for el in tree.synth['id']:
         res += el + ", "
     return res[:-2]
 
-def simplify(tree: TreeNode):
+def simplify(tree: TreeCstNode):
     while True:
         if len(tree.children) == 1:
             tree = tree.children[0]
@@ -237,7 +237,7 @@ def simplify(tree: TreeNode):
             break
     return tree
 
-def is_paranthesis_node(tree: TreeNode):
+def is_paranthesis_node(tree: TreeCstNode):
     n = len(tree.children)
     if tree.symbol == NonTerminal(value="Factor") and \
         n == 3 and tree.children[0].symbol == Terminal(Category.OPEN_BRACKET):
@@ -245,7 +245,7 @@ def is_paranthesis_node(tree: TreeNode):
     else:
         return False
 
-def is_fuzzy_value_node(tree: TreeNode):
+def is_fuzzy_value_node(tree: TreeCstNode):
     n = len(tree.children)
     if tree.symbol == NonTerminal(value="Factor") and \
             n == 3 and tree.children[0].symbol == Terminal(Category.FUZZY_VALUE):
@@ -253,7 +253,7 @@ def is_fuzzy_value_node(tree: TreeNode):
     else:
         return False
 
-def is_fuzzy_value(tree: TreeNode):
+def is_fuzzy_value(tree: TreeCstNode):
     tree = simplify(tree)
     while True:
         if is_paranthesis_node(tree):
@@ -262,7 +262,7 @@ def is_fuzzy_value(tree: TreeNode):
             break
     return is_fuzzy_value_node(tree)
 
-def get_fuzzy_value(tree: TreeNode):
+def get_fuzzy_value(tree: TreeCstNode):
     tree = simplify(tree)
     while True:
         if is_paranthesis_node(tree):
@@ -271,7 +271,7 @@ def get_fuzzy_value(tree: TreeNode):
             break
     return tree.children[2].synth
 
-def broadcast_body(tree: TreeNode, table: Environment, fh: FunctionHub):
+def broadcast_body(tree: TreeCstNode, table: Environment, fh: FunctionHub):
     match tree.symbol.type:
         case SymbolType.TERMINAL:
             if isinstance(tree.symbol, LTerminal):

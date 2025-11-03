@@ -1,2 +1,3 @@
-str = ""
-print(str[:-1] == "")
+lst = [1, 2, 3, 4]
+lst.clear()
+print(lst)
