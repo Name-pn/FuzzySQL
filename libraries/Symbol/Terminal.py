@@ -68,9 +68,11 @@ class CategoryRegex(Enum):
     COLON_R = ":"
     EQUAL = "="
     COMPARISON = r"!=|>=|<=|<<|>>|=!|!=!|>!|<!|>=!|<=!|<>|[<>]"
-    PLUS_AND_MINUS = r"[+-]"
+    PLUS = r"\+"
+    MINUS = r"-"
     MULTIPLICATION = r"\*"
-    OPERATION_R = r"[\/\%]"
+    DIVIDE = r"\/"
+    MOD = r"\%"
     EXPONENTIATION_R = r"[\^]"
 
 class Category(Enum):
@@ -136,9 +138,11 @@ class Category(Enum):
     COLON = auto()
     EQUAL = auto()
     COMPARISON = auto()
-    PLUS_AND_MINUS = auto()
+    PLUS = auto()
+    MINUS = auto()
     MULTIPLICATION = auto()
-    OPERATION = auto()
+    DIVIDE = auto()
+    MOD = auto()
     EXPONENTIATION = auto()
 
 
@@ -146,7 +150,6 @@ class Terminal(Symbol):
     def __init__(self, terminal_type:Category = Category.UNDEF):
         super().__init__(terminal_type.name.lower(), SymbolType.TERMINAL)
         self.ttype = terminal_type
-
 
     def __str__(self):
         return str(self.value)

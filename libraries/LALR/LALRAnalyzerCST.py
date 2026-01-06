@@ -2,7 +2,7 @@ import pandas as pd
 
 from libraries.Analyzer import Analyzer
 from libraries.TreeMixins.MixinCST import MixinCST
-from save_table import table_name
+from scripts.save_table import table_name
 
 
 class LALRAnalyzerCST(MixinCST, Analyzer):

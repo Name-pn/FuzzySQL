@@ -6,6 +6,7 @@ from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 from CurrentGr import gr
 from libraries.CodeGen import broadcast
 from libraries.Environment import Environment
+from libraries.Extension import ExtensionCursor
 from libraries.FunctionHub import FunctionHub
 from libraries.LALR.LALRAnalyzerCST import LALRAnalyzerCST
 from libraries.Lexer import SQLLexer
@@ -138,26 +139,27 @@ class TesterBroadcast(unittest.TestCase):
         conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
         common_cursor = conn.cursor()
         cls.fh = FunctionHub(common_cursor, cls.table)
+        cls.maxDiff = None
 
     def test_add_command(self):
         test_string = "add high_number (999, 1001, 1111, 1200);"
         tokens = self.lexer.tokenize(test_string)
         tree = self.parser.parse(tokens)
-        tree.postOrderVisit(lambda tree: broadcast(tree, self.fh))
+        tree.postOrderVisit(lambda tree: broadcast(tree, self.fh, self.table))
         self.assertEqual(tree.synth, f"INSERT INTO {self.table.get('fvtname')}(name, a, b, c, d) VALUES ('high_number', 999, 1001, 1111, 1200);\n")
 
     def test_modify(self):
         test_string = "modify high_number (10, 12, 14, 16.05)"
         tokens = self.lexer.tokenize(test_string)
         tree = self.parser.parse(tokens)
-        tree.postOrderVisit(lambda tree: broadcast(tree, self.fh))
+        tree.postOrderVisit(lambda tree: broadcast(tree, self.fh, self.table))
         self.assertEqual(tree.synth, f"UPDATE {self.table.get('fvtname')} SET name = \'high_number\', a = 10, b = 12, c = 14, d = 16.05 WHERE name = \'high_number\'")
 
     def test_remove(self):
         test_string = "remove high_number;"
         tokens = self.lexer.tokenize(test_string)
         tree = self.parser.parse(tokens)
-        tree.postOrderVisit(lambda tree: broadcast(tree, self.fh))
+        tree.postOrderVisit(lambda tree: broadcast(tree, self.fh, self.table))
         self.assertEqual(tree.synth, f"DELETE FROM {self.table.get('fvtname')} WHERE name = \'high_number\';\n")
 
     def test_set(self):
@@ -165,21 +167,21 @@ class TesterBroadcast(unittest.TestCase):
                       "set columnprefix 'fc'"
         tokens = self.lexer.tokenize(test_string)
         tree = self.parser.parse(tokens)
-        tree.postOrderVisit(lambda tree: broadcast(tree, self.fh))
+        tree.postOrderVisit(lambda tree: broadcast(tree, self.fh, self.table))
         self.assertEqual(tree.synth, f"")
 
     def test_create_table(self):
         test_string = "CREATE TABLE table1 (column1 INTEGER PRIMARY KEY, column2 VARCHAR(10) UNIQUE NULL, column3 FUZZY);"
         tokens = self.lexer.tokenize(test_string)
         tree = self.parser.parse(tokens)
-        tree.postOrderVisit(lambda tree: broadcast(tree, self.fh))
+        tree.postOrderVisit(lambda tree: broadcast(tree, self.fh, self.table))
         self.assertEqual(tree.synth, f"CREATE TABLE table1 ( column1 INTEGER PRIMARY KEY, column2 VARCHAR ( 10 ) UNIQUE NULL, column3_f1 REAL, column3_f2 REAL, column3_f3 REAL, column3_f4 REAL );\n")
 
     def test_modify_table1(self):
         test_string = "ALTER TABLE table1 MODIFY (column1 VARCHAR(10), column2 INTEGER, column3 REAL);"
         tokens = self.lexer.tokenize(test_string)
         tree = self.parser.parse(tokens)
-        tree.postOrderVisit(lambda tree: broadcast(tree, self.fh))
+        tree.postOrderVisit(lambda tree: broadcast(tree, self.fh, self.table))
         self.assertEqual(tree.synth, f"ALTER TABLE table1 DROP CONSTRAINT table1_column3_key,\n"
                                      f"ALTER COLUMN column1 TYPE VARCHAR ( 10 ),\n"
                                      f"ALTER COLUMN column2 TYPE INTEGER,\n"
@@ -190,7 +192,7 @@ class TesterBroadcast(unittest.TestCase):
         tokens = self.lexer.tokenize(test_string)
         tree = self.parser.parse(tokens)
         # self.assertFalse(self.parser.parse(tokens))
-        tree.postOrderVisit(lambda tree: broadcast(tree, self.fh))
+        tree.postOrderVisit(lambda tree: broadcast(tree, self.fh, self.table))
         self.assertEqual(tree.synth, f"ALTER TABLE table1 DROP CONSTRAINT table1_column3_key,\n"
                                      f"ALTER COLUMN {'column1'+self.table.get('columnsuffix')+'1'} TYPE REAL,\n"
                                      f"ADD COLUMN {'column1'+self.table.get('columnsuffix')+'2'} REAL,\n"
@@ -201,7 +203,7 @@ class TesterBroadcast(unittest.TestCase):
         test_string = "ALTER TABLE table1 MODIFY (column1 VARCHAR(10) NULL, column2 INTEGER NOT NULL, column3 REAL DEFAULT 3.3 UNIQUE);"
         tokens = self.lexer.tokenize(test_string)
         tree = self.parser.parse(tokens)
-        tree.postOrderVisit(lambda tree: broadcast(tree, self.fh))
+        tree.postOrderVisit(lambda tree: broadcast(tree, self.fh, self.table))
         self.assertEqual(tree.synth, f"ALTER TABLE table1 DROP CONSTRAINT table1_column3_key,\n"
                                      f"ALTER COLUMN column1 TYPE VARCHAR ( 10 ),\n"
                                      f"ALTER COLUMN column1 DROP NOT NULL,\n"
@@ -218,7 +220,7 @@ class TesterBroadcast(unittest.TestCase):
         test_string = "ALTER TABLE table1 DROP (column1, column2);"
         tokens = self.lexer.tokenize(test_string)
         tree = self.parser.parse(tokens)
-        tree.postOrderVisit(lambda tree: broadcast(tree, self.fh))
+        tree.postOrderVisit(lambda tree: broadcast(tree, self.fh, self.table))
         self.assertEqual(tree.synth,
                          f"ALTER TABLE table1 DROP COLUMN column1,\n"
                          f"DROP COLUMN column2;\n")
@@ -227,7 +229,7 @@ class TesterBroadcast(unittest.TestCase):
         test_string = "ALTER TABLE table2 DROP (fc:column1);"
         tokens = self.lexer.tokenize(test_string)
         tree = self.parser.parse(tokens)
-        tree.postOrderVisit(lambda tree: broadcast(tree, self.fh))
+        tree.postOrderVisit(lambda tree: broadcast(tree, self.fh, self.table))
         self.assertEqual(tree.synth,
                          f"ALTER TABLE table2 DROP COLUMN {'column1' + self.table.get('columnsuffix') + '1'},\n"
                          f"DROP COLUMN {'column1' + self.table.get('columnsuffix') + '2'},\n"
@@ -238,7 +240,7 @@ class TesterBroadcast(unittest.TestCase):
         test_string = "ALTER TABLE table3 DROP (fc:column1, column2, fc:column3);"
         tokens = self.lexer.tokenize(test_string)
         tree = self.parser.parse(tokens)
-        tree.postOrderVisit(lambda tree: broadcast(tree, self.fh))
+        tree.postOrderVisit(lambda tree: broadcast(tree, self.fh, self.table))
         self.assertEqual(tree.synth,
                          f"ALTER TABLE table3 DROP COLUMN {'column1' + self.table.get('columnsuffix') + '1'},\n"
                          f"DROP COLUMN {'column1' + self.table.get('columnsuffix') + '2'},\n"
@@ -255,7 +257,7 @@ class TesterBroadcast(unittest.TestCase):
         test_string = "ALTER TABLE table3 RENAME column1 column2;"
         tokens = self.lexer.tokenize(test_string)
         tree = self.parser.parse(tokens)
-        tree.postOrderVisit(lambda tree: broadcast(tree, self.fh))
+        tree.postOrderVisit(lambda tree: broadcast(tree, self.fh, self.table))
         self.assertEqual(tree.synth,
                          f"ALTER TABLE table3 RENAME COLUMN column1 TO column2;\n")
 
@@ -263,7 +265,7 @@ class TesterBroadcast(unittest.TestCase):
         test_string = "ALTER TABLE table3 ADD (column1 INT UNIQUE NOT NULL, column2 FUZZY);"
         tokens = self.lexer.tokenize(test_string)
         tree = self.parser.parse(tokens)
-        tree.postOrderVisit(lambda tree: broadcast(tree, self.fh))
+        tree.postOrderVisit(lambda tree: broadcast(tree, self.fh, self.table))
         self.assertEqual(tree.synth,
                          f"ALTER TABLE table3 ADD COLUMN column1 INT UNIQUE NOT NULL,\n"
                          f"ADD COLUMN {'column2' + self.table.get('columnsuffix') + '1'} REAL,\n"
@@ -275,7 +277,7 @@ class TesterBroadcast(unittest.TestCase):
         test_string = "INSERT INTO some_table (fc:fuzzy_column) VALUES (1, 2, 3, 4);"
         tokens = self.lexer.tokenize(test_string)
         tree = self.parser.parse(tokens)
-        tree.postOrderVisit(lambda tree: broadcast(tree, self.fh))
+        tree.postOrderVisit(lambda tree: broadcast(tree, self.fh, self.table))
         self.assertEqual(tree.synth,
                          f"INSERT INTO some_table (fuzzy_column{self.table.get('columnsuffix') + '1'}, "
                          f"fuzzy_column{self.table.get('columnsuffix') + '2'}, "
@@ -287,7 +289,7 @@ class TesterBroadcast(unittest.TestCase):
         test_string = "INSERT INTO some_table (fc:fuzzy_column, columnx) VALUES (1, 2, 3, 4, 'str'), (5, 6, 7, 8, 'str2');"
         tokens = self.lexer.tokenize(test_string)
         tree = self.parser.parse(tokens)
-        tree.postOrderVisit(lambda tree: broadcast(tree, self.fh))
+        tree.postOrderVisit(lambda tree: broadcast(tree, self.fh, self.table))
         self.assertEqual(tree.synth,
                          f"INSERT INTO some_table (fuzzy_column{self.table.get('columnsuffix') + '1'}, "
                          f"fuzzy_column{self.table.get('columnsuffix') + '2'}, "
@@ -301,7 +303,7 @@ class TesterBroadcast(unittest.TestCase):
         test_string = "INSERT INTO some_table VALUES (1, 2, 3, 4, 'str'), (5, 6, 7, 8, 'str2');"
         tokens = self.lexer.tokenize(test_string)
         tree = self.parser.parse(tokens)
-        tree.postOrderVisit(lambda tree: broadcast(tree, self.fh))
+        tree.postOrderVisit(lambda tree: broadcast(tree, self.fh, self.table))
         self.assertEqual(tree.synth,
                          f"INSERT INTO some_table VALUES (1, 2, 3, 4, 'str'),\n"
                          f"(5, 6, 7, 8, 'str2');\n")
@@ -310,7 +312,7 @@ class TesterBroadcast(unittest.TestCase):
         test_string = "UPDATE table1 SET fc:fcolumn = fv:high;"
         tokens = self.lexer.tokenize(test_string)
         tree = self.parser.parse(tokens)
-        tree.postOrderVisit(lambda tree: broadcast(tree, self.fh))
+        tree.postOrderVisit(lambda tree: broadcast(tree, self.fh, self.table))
         self.assertEqual(tree.synth,
                          f"UPDATE table1 SET fcolumn_f1 = (SELECT a FROM fuzzyvalues WHERE name = 'high'),\n"
                          f"fcolumn_f2 = (SELECT b FROM fuzzyvalues WHERE name = 'high'),\n"
@@ -321,7 +323,7 @@ class TesterBroadcast(unittest.TestCase):
         test_string = "UPDATE table1 SET fc:fcolumn = fv:high, column2 = 5;"
         tokens = self.lexer.tokenize(test_string)
         tree = self.parser.parse(tokens)
-        tree.postOrderVisit(lambda tree: broadcast(tree, self.fh))
+        tree.postOrderVisit(lambda tree: broadcast(tree, self.fh, self.table))
         self.assertEqual(tree.synth,
                          f"UPDATE table1 SET fcolumn_f1 = (SELECT a FROM fuzzyvalues WHERE name = 'high'),\n"
                          f"fcolumn_f2 = (SELECT b FROM fuzzyvalues WHERE name = 'high'),\n"
@@ -333,7 +335,7 @@ class TesterBroadcast(unittest.TestCase):
         test_string = "UPDATE table1 SET fc:fuzzy_column = fv:medium_temperature WHERE name = \'medium_temperature\';"
         tokens = self.lexer.tokenize(test_string)
         tree = self.parser.parse(tokens)
-        tree.postOrderVisit(lambda tree: broadcast(tree, self.fh))
+        tree.postOrderVisit(lambda tree: broadcast(tree, self.fh, self.table))
         self.assertEqual(tree.synth,
                          f"UPDATE table1 SET fuzzy_column_f1 = (SELECT a FROM fuzzyvalues WHERE name = 'medium_temperature'),\n"
                          f"fuzzy_column_f2 = (SELECT b FROM fuzzyvalues WHERE name = 'medium_temperature'),\n"
@@ -341,9 +343,349 @@ class TesterBroadcast(unittest.TestCase):
                          f"fuzzy_column_f4 = (SELECT d FROM fuzzyvalues WHERE name = 'medium_temperature')\n"
                          f"WHERE name = \'medium_temperature\';\n")
 
+    def test_delete_1(self):
+        test_string = "DELETE FROM some_table WHERE fc:fuzzy_column = fv:low_humidity;"
+        tokens = self.lexer.tokenize(test_string)
+        tree = self.parser.parse(tokens)
+        tree.postOrderVisit(lambda tree: broadcast(tree, self.fh, self.table))
+        self.assertEqual(tree.synth,
+                         f"DELETE FROM some_table WHERE (fuzzy_column_f4-0.2*(fuzzy_column_f4-fuzzy_column_f3)\n"
+                         f">=(SELECT 0.2*(b-a)+a FROM fuzzyvalues WHERE name='low_humidity')\n"
+                         f"AND 0.2*(fuzzy_column_f2-fuzzy_column_f1)+fuzzy_column_f1\n"
+                         f"<= (SELECT d-(d-c)*0.2 FROM fuzzyvalues WHERE name='low_humidity'));\n"
+                         )
 
+    def test_delete_2(self):
+        test_string = "DELETE FROM some_table WHERE fc:fuzzy_column = fv:low_humidity OR column2 != 3;"
+        tokens = self.lexer.tokenize(test_string)
+        tree = self.parser.parse(tokens)
+        tree.postOrderVisit(lambda tree: broadcast(tree, self.fh, self.table))
+        self.assertEqual(tree.synth,
+                         f"DELETE FROM some_table WHERE (fuzzy_column_f4-0.2*(fuzzy_column_f4-fuzzy_column_f3)\n"
+                         f">=(SELECT 0.2*(b-a)+a FROM fuzzyvalues WHERE name='low_humidity')\n"
+                         f"AND 0.2*(fuzzy_column_f2-fuzzy_column_f1)+fuzzy_column_f1\n"
+                         f"<= (SELECT d-(d-c)*0.2 FROM fuzzyvalues WHERE name='low_humidity')) OR column2!=3;\n"
+                         )
 
-    
+    def test_delete_3(self):
+        test_string = "DELETE FROM some_table;"
+        tokens = self.lexer.tokenize(test_string)
+        tree = self.parser.parse(tokens)
+        tree.postOrderVisit(lambda tree: broadcast(tree, self.fh, self.table))
+        self.assertEqual(tree.synth,
+                         f"DELETE FROM some_table;\n"
+                         )
+
+    def test_select_1(self):
+        test_string = "SELECT * FROM table1;"
+        tokens = self.lexer.tokenize(test_string)
+        tree = self.parser.parse(tokens)
+        tree.postOrderVisit(lambda tree: broadcast(tree, self.fh, self.table))
+        self.assertEqual(tree.synth,
+                         f"SELECT * FROM table1;\n"
+                         )
+
+    def test_select_2(self):
+        test_string = "SELECT * FROM table1 WHERE fc:column = fv:value;"
+        tokens = self.lexer.tokenize(test_string)
+        tree = self.parser.parse(tokens)
+        tree.postOrderVisit(lambda tree: broadcast(tree, self.fh, self.table))
+        self.assertEqual(tree.synth,
+                         f"SELECT * FROM table1 WHERE (column_f4-0.2*(column_f4-column_f3)\n"
+                         f">=(SELECT 0.2*(b-a)+a FROM fuzzyvalues WHERE name='value')\n"
+                         f"AND 0.2*(column_f2-column_f1)+column_f1\n"
+                         f"<= (SELECT d-(d-c)*0.2 FROM fuzzyvalues WHERE name='value'));\n"
+                         )
+
+    def test_select_3(self):
+        test_string = "SELECT * FROM table1 WHERE fv:value = fc:column;"
+        tokens = self.lexer.tokenize(test_string)
+        tree = self.parser.parse(tokens)
+        tree.postOrderVisit(lambda tree: broadcast(tree, self.fh, self.table))
+        self.assertEqual(tree.synth,
+                         f"SELECT * FROM table1 WHERE ((SELECT d-0.2*(d-c) FROM fuzzyvalues WHERE name='value')\n"
+                         f">= 0.2*(column_f2-column_f1)+column_f1\n"
+                         f"AND (SELECT (b-a)*0.2+a FROM fuzzyvalues WHERE name='value')\n"
+                         f"<= column_f4-(column_f4-column_f3)*0.2);\n"
+                         )
+
+    def test_select_4(self):
+        test_string = "SELECT * FROM table1 WHERE fc:column = 4;"
+        tokens = self.lexer.tokenize(test_string)
+        tree = self.parser.parse(tokens)
+        self.assertRaises(Exception, tree.postOrderVisit, lambda tree: broadcast(tree, self.fh, self.table))
+
+    def test_select_5(self):
+        test_string = "SELECT * FROM table1 WHERE fc:column != fv:value;"
+        tokens = self.lexer.tokenize(test_string)
+        tree = self.parser.parse(tokens)
+        tree.postOrderVisit(lambda tree: broadcast(tree, self.fh, self.table))
+        self.assertEqual(tree.synth,
+                         f"SELECT * FROM table1 WHERE (column_f4-0.2*(column_f4-column_f3)\n"
+                         f"<(SELECT 0.2*(b-a)+a FROM fuzzyvalues WHERE name='value')\n"
+                         f" OR 0.2*(column_f2-column_f1)+column_f1\n"
+                         f" > (SELECT d-(d-c)*0.2 FROM fuzzyvalues WHERE name='value'));\n"
+                         )
+
+    def test_select_6(self):
+        test_string = "SELECT * FROM table1 WHERE fv:value != fc:column;"
+        tokens = self.lexer.tokenize(test_string)
+        tree = self.parser.parse(tokens)
+        tree.postOrderVisit(lambda tree: broadcast(tree, self.fh, self.table))
+        self.assertEqual(tree.synth,
+                         f"SELECT * FROM table1 WHERE ((SELECT d-0.2*(d-c) FROM fuzzyvalues WHERE name='value')\n"
+                         f" < 0.2*(column_f2-column_f1)+column_f1\n"
+                         f" OR (SELECT (b-a)*0.2+a FROM fuzzyvalues WHERE name='value')\n"
+                         f" > column_f4-(column_f4-column_f3)*0.2);\n"
+                         )
+
+    def test_select_7(self):
+        test_string = "SELECT * FROM table1 WHERE fv:value < fc:column;"
+        tokens = self.lexer.tokenize(test_string)
+        tree = self.parser.parse(tokens)
+        tree.postOrderVisit(lambda tree: broadcast(tree, self.fh, self.table))
+        self.assertEqual(tree.synth,
+                         f"SELECT * FROM table1 WHERE ((SELECT d-0.2*(d-c) FROM fuzzyvalues WHERE name='value')\n"
+                         f"<column_f1+0.2*(column_f2-column_f1));\n"
+                         )
+
+    def test_select_8(self):
+        test_string = "SELECT * FROM table1 WHERE fc:column < fv:value;"
+        tokens = self.lexer.tokenize(test_string)
+        tree = self.parser.parse(tokens)
+        tree.postOrderVisit(lambda tree: broadcast(tree, self.fh, self.table))
+        self.assertEqual(tree.synth,
+                         f"SELECT * FROM table1 WHERE (column_f4-0.2*(column_f4-column_f3)\n"
+                         f"<(SELECT a+0.2*(b-a) FROM fuzzyvalues WHERE name='value'));\n"
+                         )
+
+    def test_select_9(self):
+        test_string = "SELECT * FROM table1 WHERE fc:column > fv:value;"
+        tokens = self.lexer.tokenize(test_string)
+        tree = self.parser.parse(tokens)
+        tree.postOrderVisit(lambda tree: broadcast(tree, self.fh, self.table))
+        self.assertEqual(tree.synth,
+                         f"SELECT * FROM table1 WHERE (column_f1+0.2*(column_f2-column_f1)\n"
+                         f">(SELECT d-0.2*(d-c) FROM fuzzyvalues WHERE name='value'));\n"
+                         )
+
+    def test_select_10(self):
+        test_string = "SELECT * FROM table1 WHERE fv:value > fc:column;"
+        tokens = self.lexer.tokenize(test_string)
+        tree = self.parser.parse(tokens)
+        tree.postOrderVisit(lambda tree: broadcast(tree, self.fh, self.table))
+        self.assertEqual(tree.synth,
+                         f"SELECT * FROM table1 WHERE ((SELECT a+0.2*(b-a) FROM fuzzyvalues WHERE name='value')\n"
+                         f">column_f4-0.2*(column_f4-column_f3));\n"
+                         )
+
+    def test_select_11(self):
+        test_string = "SELECT * FROM table1 WHERE fv:value <= fc:column;"
+        tokens = self.lexer.tokenize(test_string)
+        tree = self.parser.parse(tokens)
+        tree.postOrderVisit(lambda tree: broadcast(tree, self.fh, self.table))
+        self.assertEqual(tree.synth,
+                         f"SELECT * FROM table1 WHERE ((SELECT a-0.2*(b-a) FROM fuzzyvalues WHERE name='value')\n"
+                         f"<column_f4-0.2*(column_f4-column_f3));\n"
+                         )
+
+    def test_select_12(self):
+        test_string = "SELECT * FROM table1 WHERE fc:column <= fv:value;"
+        tokens = self.lexer.tokenize(test_string)
+        tree = self.parser.parse(tokens)
+        tree.postOrderVisit(lambda tree: broadcast(tree, self.fh, self.table))
+        self.assertEqual(tree.synth,
+                         f"SELECT * FROM table1 WHERE (column_f1+0.2*(column_f2-column_f1)\n"
+                         f"<(SELECT d-0.2*(d-c) FROM fuzzyvalues WHERE name='value'));\n"
+                         )
+
+    def test_select_13(self):
+        test_string = "SELECT * FROM table1 WHERE fc:column >= fv:value;"
+        tokens = self.lexer.tokenize(test_string)
+        tree = self.parser.parse(tokens)
+        tree.postOrderVisit(lambda tree: broadcast(tree, self.fh, self.table))
+        self.assertEqual(tree.synth,
+                         f"SELECT * FROM table1 WHERE (column_f4+0.2*(column_f4-column_f3)\n"
+                         f">(SELECT a+0.2*(b-a) FROM fuzzyvalues WHERE name='value'));\n"
+                         )
+
+    def test_select_14(self):
+        test_string = "SELECT * FROM table1 WHERE fv:value >= fc:column;"
+        tokens = self.lexer.tokenize(test_string)
+        tree = self.parser.parse(tokens)
+        tree.postOrderVisit(lambda tree: broadcast(tree, self.fh, self.table))
+        self.assertEqual(tree.synth,
+                         f"SELECT * FROM table1 WHERE ((SELECT d-0.2*(d-c) FROM fuzzyvalues WHERE name='value')\n"
+                         f">column_f1+0.2*(column_f2-column_f1));\n"
+                         )
+
+    def test_select_15(self):
+        test_string = "SELECT * FROM table1 WHERE fv:value << fc:column;"
+        tokens = self.lexer.tokenize(test_string)
+        tree = self.parser.parse(tokens)
+        tree.postOrderVisit(lambda tree: broadcast(tree, self.fh, self.table))
+        self.assertEqual(tree.synth,
+                         f"SELECT * FROM table1 WHERE ((SELECT a+0.2*(b-a) FROM fuzzyvalues WHERE name='value')\n"
+                         f" <= 0.2*(column_f2-column_f1)+column_f1\n"
+                         f" AND (SELECT d-(d-c)*0.2 FROM fuzzyvalues WHERE name='value')\n"
+                         f" >= column_f4-(column_f4-column_f3)*0.2);\n"
+                         )
+
+    def test_select_16(self):
+        test_string = "SELECT * FROM table1 WHERE fc:column << fv:value;"
+        tokens = self.lexer.tokenize(test_string)
+        tree = self.parser.parse(tokens)
+        tree.postOrderVisit(lambda tree: broadcast(tree, self.fh, self.table))
+        self.assertEqual(tree.synth,
+                         f"SELECT * FROM table1 WHERE (column_f1+0.2*(column_f2-column_f1)\n"
+                         f"<=(SELECT 0.2*(b-a)+a FROM fuzzyvalues WHERE name='value')\n"
+                         f" AND column_f4 - 0.2*(column_f4-column_f3)\n"
+                         f" >= (SELECT d-(d-c)*0.2 FROM fuzzyvalues WHERE name='value'));\n"
+                         )
+
+    def test_select_17(self):
+        test_string = "SELECT * FROM table1 WHERE fc:column >> fv:value;"
+        tokens = self.lexer.tokenize(test_string)
+        tree = self.parser.parse(tokens)
+        tree.postOrderVisit(lambda tree: broadcast(tree, self.fh, self.table))
+        self.assertEqual(tree.synth,
+                         f"SELECT * FROM table1 WHERE ((SELECT 0.2*(b-a)+a FROM fuzzyvalues WHERE name='value')\n"
+                         f"<=column_f1+0.2*(column_f2-column_f1)\n"
+                         f" AND (SELECT d-(d-c)*0.2 FROM fuzzyvalues WHERE name='value')\n"
+                         f" >= column_f4 - 0.2*(column_f4-column_f3));\n"
+                         )
+
+    def test_select_18(self):
+        test_string = "SELECT * FROM table1 WHERE fv:value >> fc:column;"
+        tokens = self.lexer.tokenize(test_string)
+        tree = self.parser.parse(tokens)
+        tree.postOrderVisit(lambda tree: broadcast(tree, self.fh, self.table))
+        self.assertEqual(tree.synth,
+                         f"SELECT * FROM table1 WHERE (0.2*(column_f2-column_f1)+column_f1\n"
+                         f" <= (SELECT a+0.2*(b-a) FROM fuzzyvalues WHERE name='value')\n"
+                         f" AND column_f4-(column_f4-column_f3)*0.2\n"
+                         f" >= (SELECT d-(d-c)*0.2 FROM fuzzyvalues WHERE name='value'));\n"
+                         )
+
+class SystemTester(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.table = Environment()
+        cls.table.load()
+        conn = psycopg2.connect(host="localhost", port=5433,
+                                dbname="postgres", user="postgres",
+                                password="1111", connect_timeout=10, sslmode="prefer")
+        conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+        cls.common_cursor = conn.cursor()
+        conn.cursor_factory = ExtensionCursor
+        cls.cursor: ExtensionCursor = conn.cursor()
+        cls.fh = FunctionHub(cls.common_cursor, cls.table)
+        cls.cursor.set_fh(cls.fh)
+        cls.cursor.set_table(cls.table)
+        cls.maxDiff = None
+        # commands_after = "DROP TABLE speed_table;" \
+        #                  "remove high_speed;" \
+        #                  "remove medium_speed;" \
+        #                  "remove low_speed;"
+        # cls.cursor.execute(commands_after)
+        commands_before = "add high_speed (80, 90, 100, 110);" \
+                          "add medium_speed (40, 50, 60, 70);" \
+                          "add low_speed(0, 10, 20, 30);" \
+                          "add car_speed(0, 10, 110, 120);" \
+                          "CREATE TABLE speed_table (speed FUZZY);" \
+                          "INSERT INTO speed_table (fc:speed) VALUES (0, 40, 80, 120), (10, 30, 50, 70), (70, 80, 90, 100);"
+        cls.cursor.execute(commands_before)
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        commands_after = "DROP TABLE speed_table;" \
+                         "remove high_speed;" \
+                         "remove medium_speed;" \
+                         "remove low_speed;" \
+                         "remove car_speed;"
+        cls.cursor.execute(commands_after)
+
+    def test_system_1(self):
+        commands_run = "SELECT * FROM speed_table WHERE fc:speed = fv:medium_speed;"
+        self.cursor.execute(commands_run)
+        res = self.cursor.fetchall()
+        self.assertEqual(set([(0, 40, 80, 120), (10, 30, 50, 70)]), set(res))
+
+    def test_system_2(self):
+        commands_run = "SELECT * FROM speed_table WHERE fv:medium_speed = fc:speed;"
+        self.cursor.execute(commands_run)
+        res = self.cursor.fetchall()
+        self.assertEqual(set([(0, 40, 80, 120), (10, 30, 50, 70)]), set(res))
+
+    def test_system_3(self):
+        commands_run = "SELECT * FROM speed_table WHERE fv:medium_speed != fc:speed;"
+        self.cursor.execute(commands_run)
+        res = self.cursor.fetchall()
+        self.assertEqual(set([(70, 80, 90, 100)]), set(res))
+
+    def test_system_4(self):
+        commands_run = "SELECT * FROM speed_table WHERE fc:speed != fv:medium_speed;"
+        self.cursor.execute(commands_run)
+        res = self.cursor.fetchall()
+        self.assertEqual(set([(70, 80, 90, 100)]), set(res))
+
+    def test_system_5(self):
+        commands_run = "SELECT * FROM speed_table WHERE fc:speed < fv:high_speed;"
+        self.cursor.execute(commands_run)
+        res = self.cursor.fetchall()
+        self.assertEqual(set([(10, 30, 50, 70)]), set(res))
+
+    def test_system_6(self):
+        commands_run = "SELECT * FROM speed_table WHERE fv:low_speed < fc:speed;"
+        self.cursor.execute(commands_run)
+        res = self.cursor.fetchall()
+        self.assertEqual(set([(70, 80, 90, 100)]), set(res))
+
+    def test_system_7(self):
+        commands_run = "SELECT * FROM speed_table WHERE fv:high_speed > fc:speed;"
+        self.cursor.execute(commands_run)
+        res = self.cursor.fetchall()
+        self.assertEqual(set([(10, 30, 50, 70)]), set(res))
+
+    def test_system_8(self):
+        commands_run = "SELECT * FROM speed_table WHERE fv:high_speed != fc:speed;"
+        self.cursor.execute(commands_run)
+        res = self.cursor.fetchall()
+        self.assertEqual(set([(10, 30, 50, 70)]), set(res))
+
+    def test_system_9(self):
+        commands_run = "SET threshold 0.99;" \
+                       "SELECT * FROM speed_table WHERE fc:speed != fv:high_speed;"
+        self.cursor.execute(commands_run)
+        res = self.cursor.fetchall()
+        self.assertEqual(set([(10, 30, 50, 70), (0, 40, 80, 120)]), set(res))
+        commands_after = "SET threshold 0.2"
+        self.cursor.execute(commands_after)
+
+    def test_system_10(self):
+        commands_run = "SELECT * FROM speed_table WHERE fc:speed >= fv:medium_speed;"
+        self.cursor.execute(commands_run)
+        res = self.cursor.fetchall()
+        self.assertEqual(set([(0, 40, 80, 120), (10, 30, 50, 70), (70, 80, 90, 100)]), set(res))
+
+    def test_system_11(self):
+        commands_run = "SELECT * FROM speed_table WHERE fv:medium_speed >= fc:speed;"
+        self.cursor.execute(commands_run)
+        res = self.cursor.fetchall()
+        self.assertEqual(set([(0, 40, 80, 120), (10, 30, 50, 70)]), set(res))
+
+    def test_system_12(self):
+        commands_run = "SELECT * FROM speed_table WHERE fv:car_speed << fc:speed;"
+        self.cursor.execute(commands_run)
+        res = self.cursor.fetchall()
+        self.assertEqual(set([(0, 40, 80, 120), (10, 30, 50, 70), (70, 80, 90, 100)]), set(res))
+
+    def test_system_13(self):
+        commands_run = "SELECT * FROM speed_table WHERE fv:high_speed >> fc:speed;"
+        self.cursor.execute(commands_run)
+        res = self.cursor.fetchall()
+        self.assertEqual(set([(0, 40, 80, 120)]), set(res))
+
 
 if __name__ == "__main__":
     unittest.main()

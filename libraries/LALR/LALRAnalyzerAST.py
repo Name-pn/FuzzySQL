@@ -1,8 +1,7 @@
 import pandas as pd
 
 from libraries.Analyzer import Analyzer
-from libraries.LALR.LALRTable import LALRTable
-from save_table import table_name
+from scripts.save_table import table_name
 
 
 class LALRAnalyzerCST(Analyzer):

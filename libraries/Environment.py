@@ -1,16 +1,20 @@
 import pickle
+import copy
 
 class Environment():
     def __init__(self):
         self.table = {}
         self.prev = None
 
+    def copy(self):
+        return copy.deepcopy(self)
+
     def save(self):
         with open('conf.pkl', 'wb') as f:
             pickle.dump(self.table, f)
 
-    def load(self):
-        with open('conf.pkl', 'rb') as f:
+    def load(self, path = 'conf.pkl'):
+        with open(path, 'rb') as f:
             self.table = pickle.load(f)
 
     def startInit(self):

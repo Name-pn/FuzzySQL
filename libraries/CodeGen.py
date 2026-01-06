@@ -20,9 +20,9 @@ index_to_column = {
     3: "d",
 }
 
-def broadcast(tree: TreeCstNode, fh: FunctionHub):
-    table = Environment()
-    table.load()
+def broadcast(tree: TreeCstNode, fh: FunctionHub, table: Environment):
+    #table = Environment()
+    #table.load()
     return broadcast_body(tree, table, fh)
 
 def is_modify_command(tree:TreeCstNode):
@@ -71,11 +71,13 @@ def is_alter_add_command(tree:TreeCstNode):
            tree.children[3].symbol == Terminal(Category.ADD)
 
 def is_insert_into_with_columns(tree:TreeCstNode):
-    return tree.children[3].symbol == Terminal(Category.OPEN_BRACKET) and \
+    return len(tree.children) > 3 and \
+           tree.children[3].symbol == Terminal(Category.OPEN_BRACKET) and \
            tree.children[0].symbol == Terminal(Category.INSERT)
 
 def is_insert_into_without_columns(tree:TreeCstNode):
-    return tree.children[3].symbol == Terminal(Category.VALUES) and \
+    return len(tree.children) > 3 and \
+           tree.children[3].symbol == Terminal(Category.VALUES) and \
            tree.children[0].symbol == Terminal(Category.INSERT)
 
 
@@ -83,12 +85,31 @@ def is_update_set(tree: TreeCstNode):
     return len(tree.children) == 5 and \
            tree.children[0].symbol == Terminal(Category.UPDATE)
 
+def is_delete_short(tree: TreeCstNode):
+    return len(tree.children) == 3 and \
+           tree.children[0].symbol == Terminal(Category.DELETE)
+
+def is_delete(tree: TreeCstNode):
+    return len(tree.children) == 5 and \
+           tree.children[0].symbol == Terminal(Category.DELETE)
+
+def is_select(tree: TreeCstNode):
+    return len(tree.children) == 1 and\
+        tree.children[0].symbol == NonTerminal(value="Select")
+
+def is_drop_table(tree: TreeCstNode):
+    return len(tree.children) == 3 and \
+           tree.children[0].symbol == Terminal(Category.DROP)
+
 def output(tree:TreeCstNode):
     print("Node symbol = ", tree.symbol, "Synth = ", tree.synth)
 
 def synthAll(tree:TreeCstNode):
     res = ""
     for child in tree.children:
+        if isinstance(child.synth, dict):
+            res += " " + child.synth['value']
+            continue
         if child.synth == ",":
             res += child.synth
             continue
@@ -247,7 +268,7 @@ def is_paranthesis_node(tree: TreeCstNode):
 
 def is_fuzzy_value_node(tree: TreeCstNode):
     n = len(tree.children)
-    if tree.symbol == NonTerminal(value="Factor") and \
+    if tree.symbol == NonTerminal(value="FValue") and \
             n == 3 and tree.children[0].symbol == Terminal(Category.FUZZY_VALUE):
         return True
     else:
@@ -280,6 +301,8 @@ def broadcast_body(tree: TreeCstNode, table: Environment, fh: FunctionHub):
                 return tree.symbol.lexem
             if tree.symbol == Terminal(Category.SEPARATOR):
                 return ";"
+            if tree.symbol == Terminal(Category.MULTIPLICATION):
+                return "*"
             if tree.symbol == Terminal(Category.EQUAL):
                 return "="
             if tree.symbol == Terminal(Category.COMMA):
@@ -349,8 +372,18 @@ def broadcast_body(tree: TreeCstNode, table: Environment, fh: FunctionHub):
                         else:
                             res = tree.children[0].synth + " " + tree.children[1].synth + " " + \
                                   tree.children[2].synth + " " + tree.children[3].synth
-                        return res#synthAll(tree)
-                    return ""
+                        return res
+                    if is_delete_short(tree):
+                        return synthAll(tree)
+                    if is_delete(tree):
+                        return tree.children[0].synth + " " + tree.children[1].synth + " " + \
+                                   tree.children[2].synth + " " + tree.children[3].synth + " " + tree.children[4].synth['value']
+                    if is_select(tree):
+                        return tree.children[0].synth
+                    if is_drop_table(tree):
+                        return synthAll(tree)
+                case NonTerminal(value="Select"):
+                    return synthAll(tree)
                 case NonTerminal(value="S"):
                     res = ""
                     for index, child in enumerate(tree.children):
@@ -455,5 +488,262 @@ def broadcast_body(tree: TreeCstNode, table: Environment, fh: FunctionHub):
                         return [tree.children[0].synth]
                     if len(tree.children) == 2:
                         return [tree.children[0].synth] + tree.children[1].synth
+                case NonTerminal(value="FColumn"):
+                    return {
+                        "type": "fc",
+                        "value": tree.children[2].synth,
+                    }
+                    #return tree.children[2].synth
+                case NonTerminal(value="FValue"):
+                    return {
+                        "type": "fv",
+                        "value": tree.children[2].synth,
+                    }
+                    # return tree.children[2].synth
+                case NonTerminal(value="Expr"):
+                    if len(tree.children) == 1:
+                        return tree.children[0].synth
+                    elif len(tree.children) == 3:
+                        if tree.children[0].synth["type"] != "common" and tree.children[2].synth["type"] != "common":
+                            raise Exception("Оператор or для fv/fc не определен")
+                        else:
+                            return {
+                                "type": "common",
+                                "value": tree.children[0].synth['value'] + " " +
+                                         tree.children[1].synth + " " + tree.children[2].synth['value']
+                            }
+                case NonTerminal(value="T1"):
+                    if len(tree.children) == 1:
+                        return tree.children[0].synth
+                    elif len(tree.children) == 3:
+                        if tree.children[0].synth["type"] != "common" and tree.children[2].synth["type"] != "common":
+                            raise Exception("Оператор and для fv/fc не определен")
+                        else:
+                            return {
+                                "type": "common",
+                                "value": tree.children[0].synth['value'] + " " +
+                                         tree.children[1].synth + " " + tree.children[2].synth['value']
+                            }
+                case NonTerminal(value="T2"):
+                    if len(tree.children) == 1:
+                        return tree.children[0].synth
+                    elif len(tree.children) == 2:
+                        if tree.children[1].synth["type"] != "common":
+                            raise Exception("Оператор not для fv/fc не определен")
+                        else:
+                            return {
+                                "type": "common",
+                                "value": tree.children[0].synth + tree.children[1].synth['value']
+                            }
+                case NonTerminal(value="T3"):
+                    if len(tree.children) == 1:
+                        return tree.children[0].synth
+                    elif len(tree.children) == 3:
+                        if tree.children[1].symbol == Terminal(Category.EQUAL):
+                            if tree.children[0].synth['type'] == "common" and tree.children[2].synth['type'] == "common":
+                                return {
+                                    "type": "common",
+                                    "value": tree.children[0].synth['value'] + " " + tree.children[1].synth +
+                                             " " + tree.children[2].synth['value']
+                                }
+                            elif tree.children[0].synth['type'] == "fv" and tree.children[2].synth['type'] == "fc":
+                                left, right = tree.children[0].synth["value"], tree.children[2].synth['value']
+                                env = table
+                                return {
+                                    "type": "common",
+                                    "value": f"((SELECT d-{env.get('threshold')}*(d-c) FROM {env.get('fvtname')} WHERE name=\'{left}\')"\
+                                            f"\n>= {env.get('threshold')}*({right}{env.get('columnsuffix')}2-{right}{env.get('columnsuffix')}1)+{right}{env.get('columnsuffix')}1"\
+                                            f"\nAND (SELECT (b-a)*{env.get('threshold')}+a FROM {env.get('fvtname')} WHERE name=\'{left}\')"\
+                                            f"\n<= {right}{env.get('columnsuffix')}4-({right}{env.get('columnsuffix')}4-{right}{env.get('columnsuffix')}3)*{env.get('threshold')})"
+                                }
+                            elif tree.children[0].synth['type'] == "fc" and tree.children[2].synth['type'] == "fv":
+                                left, right = tree.children[0].synth["value"], tree.children[2].synth['value']
+                                env = table
+                                return {
+                                    "type": "common",
+                                    "value": f"({left}{env.get('columnsuffix')}4-{env.get('threshold')}*({left}{env.get('columnsuffix')}4-{left}{env.get('columnsuffix')}3)" \
+                                             f"\n>=(SELECT {env.get('threshold')}*(b-a)+a FROM {env.get('fvtname')} WHERE name=\'{right}\')" \
+                                             f"\nAND {env.get('threshold')}*({left}{env.get('columnsuffix')}2-{left}{env.get('columnsuffix')}1)+{left}{env.get('columnsuffix')}1" \
+                                             f"\n<= (SELECT d-(d-c)*{env.get('threshold')} FROM {env.get('fvtname')} WHERE name=\'{right}\'))"
+                                }
+                            else:
+                                raise Exception("fv/fv или fc/fc или common/fv/fc сочетание")
+                        elif tree.children[1].symbol == Terminal(Category.COMPARISON):
+                            if tree.children[0].synth["type"] == "common" and tree.children[2].synth["type"] == "common":
+                                return {
+                                    "type": "common",
+                                    "value": tree.children[0].synth['value'] + tree.children[1].synth +
+                                             tree.children[2].synth['value']
+                                }
+                            elif tree.children[0].synth["type"] == tree.children[2].synth["type"] and \
+                                (tree.children[0].synth["type"] == "fv" or tree.children[0].synth["type"] == "fc"):
+                                raise Exception("Попытка применения оператора сравнения для fv/fv fc/fc сочетаний")
+                            elif tree.children[0].synth["type"] == "fc" and tree.children[2].synth["type"] == "fv":
+                                left, right = tree.children[0].synth["value"], tree.children[2].synth["value"]
+                                env = table
+                                if tree.children[1].synth == "<=":
+                                    return {
+                                        "type": "common",
+                                        "value": f"({left}{env.get('columnsuffix')}1+{env.get('threshold')}*({left}{env.get('columnsuffix')}2-{left}{env.get('columnsuffix')}1)"
+                                                 f"\n<(SELECT d-{env.get('threshold')}*(d-c) FROM {env.get('fvtname')} WHERE name=\'{right}\'))",
+                                    }
+                                elif tree.children[1].synth == ">=":
+                                    return {
+                                        "type": "common",
+                                        "value": f"({left}{env.get('columnsuffix')}4+{env.get('threshold')}*({left}{env.get('columnsuffix')}4-{left}{env.get('columnsuffix')}3)"
+                                                 f"\n>(SELECT a+{env.get('threshold')}*(b-a) FROM {env.get('fvtname')} WHERE name=\'{right}\'))",
+                                    }
+                                elif tree.children[1].synth == "<":
+                                    return {
+                                        "type": "common",
+                                        "value": f"({left}{env.get('columnsuffix')}4-{env.get('threshold')}*({left}{env.get('columnsuffix')}4-{left}{env.get('columnsuffix')}3)"
+                                                 f"\n<(SELECT a+{env.get('threshold')}*(b-a) FROM {env.get('fvtname')} WHERE name=\'{right}\'))",
+                                    }
+                                elif tree.children[1].synth == ">":
+                                    return {
+                                        "type": "common",
+                                        "value": f"({left}{env.get('columnsuffix')}1+{env.get('threshold')}*({left}{env.get('columnsuffix')}2-{left}{env.get('columnsuffix')}1)"
+                                                 f"\n>(SELECT d-{env.get('threshold')}*(d-c) FROM {env.get('fvtname')} WHERE name=\'{right}\'))",
+                                    }
+                                elif tree.children[1].synth == "<<":
+                                    return {
+                                        "type": "common",
+                                        "value": f"({left}{env.get('columnsuffix')}1+{env.get('threshold')}*({left}{env.get('columnsuffix')}2-{left}{env.get('columnsuffix')}1)"
+                                                 f"\n<=(SELECT {env.get('threshold')}*(b-a)+a FROM {env.get('fvtname')} WHERE name=\'{right}\')"
+                                                 f"\n AND {left}{env.get('columnsuffix')}4 - {env.get('threshold')}*({left}{env.get('columnsuffix')}4-{left}{env.get('columnsuffix')}3)"
+                                                 f"\n >= (SELECT d-(d-c)*{env.get('threshold')} FROM {env.get('fvtname')} WHERE name=\'{right}\'))",
+                                    }
+                                elif tree.children[1].synth == ">>":
+                                    return {
+                                        "type": "common",
+                                        "value": f"((SELECT {env.get('threshold')}*(b-a)+a FROM {env.get('fvtname')} WHERE name=\'{right}\')"
+                                                 f"\n<={left}{env.get('columnsuffix')}1+{env.get('threshold')}*({left}{env.get('columnsuffix')}2-{left}{env.get('columnsuffix')}1)"
+                                                 f"\n AND (SELECT d-(d-c)*{env.get('threshold')} FROM {env.get('fvtname')} WHERE name=\'{right}\')"
+                                                 f"\n >= {left}{env.get('columnsuffix')}4 - {env.get('threshold')}*({left}{env.get('columnsuffix')}4-{left}{env.get('columnsuffix')}3))",
+                                    }
+                                elif tree.children[1].synth == "!=":
+                                    return {
+                                        "type": "common",
+                                        "value": f"({left}{env.get('columnsuffix')}4-{env.get('threshold')}*({left}{env.get('columnsuffix')}4-{left}{env.get('columnsuffix')}3)"
+                                            f"\n<(SELECT {env.get('threshold')}*(b-a)+a FROM {env.get('fvtname')} WHERE name=\'{right}\')"
+                                            f"\n OR {env.get('threshold')}*({left}{env.get('columnsuffix')}2-{left}{env.get('columnsuffix')}1)+{left}{env.get('columnsuffix')}1"
+                                            f"\n > (SELECT d-(d-c)*{env.get('threshold')} FROM {env.get('fvtname')} WHERE name=\'{right}\'))"
+                                    }
+                            elif tree.children[0].synth["type"] == "fv" and tree.children[2].synth["type"] == "fc":
+                                left, right = tree.children[0].synth["value"], tree.children[2].synth["value"]
+                                env = table
+                                if tree.children[1].synth == "<=":
+                                    return {
+                                        "type": "common",
+                                        "value": f"((SELECT a-{env.get('threshold')}*(b-a) FROM {env.get('fvtname')} WHERE name=\'{left}\')"
+                                                 f"\n<{right}{env.get('columnsuffix')}4-{env.get('threshold')}*({right}{env.get('columnsuffix')}4-{right}{env.get('columnsuffix')}3))",
+                                    }
+                                elif tree.children[1].synth == ">=":
+                                    return {
+                                        "type": "common",
+                                        "value": f"((SELECT d-{env.get('threshold')}*(d-c) FROM {env.get('fvtname')} WHERE name=\'{left}\')"
+                                                 f"\n>{right}{env.get('columnsuffix')}1+{env.get('threshold')}*({right}{env.get('columnsuffix')}2-{right}{env.get('columnsuffix')}1))",
+                                    }
+                                elif tree.children[1].synth == "<":
+                                    return {
+                                        "type": "common",
+                                        "value": f"((SELECT d-{env.get('threshold')}*(d-c) FROM {env.get('fvtname')} WHERE name=\'{left}\')"
+                                                 f"\n<{right}{env.get('columnsuffix')}1+{env.get('threshold')}*({right}{env.get('columnsuffix')}2-{right}{env.get('columnsuffix')}1))",
+                                    }
+                                elif tree.children[1].synth == ">":
+                                    return {
+                                        "type": "common",
+                                        "value": f"((SELECT a+{env.get('threshold')}*(b-a) FROM {env.get('fvtname')} WHERE name=\'{left}\')"
+                                                 f"\n>{right}{env.get('columnsuffix')}4-{env.get('threshold')}*({right}{env.get('columnsuffix')}4-{right}{env.get('columnsuffix')}3))",
+                                    }
+                                elif tree.children[1].synth == "<<":
+                                    return {
+                                        "type": "common",
+                                        "value": f"((SELECT a+{env.get('threshold')}*(b-a) FROM {env.get('fvtname')} WHERE name=\'{left}\')"
+                                                 f"\n <= {env.get('threshold')}*({right}{env.get('columnsuffix')}2-{right}{env.get('columnsuffix')}1)+{right}{env.get('columnsuffix')}1"
+                                                 f"\n AND (SELECT d-(d-c)*{env.get('threshold')} FROM {env.get('fvtname')} WHERE name=\'{left}\')"
+                                                 f"\n >= {right}{env.get('columnsuffix')}4-({right}{env.get('columnsuffix')}4-{right}{env.get('columnsuffix')}3)*{env.get('threshold')})",
+                                    }
+                                elif tree.children[1].synth == ">>":
+                                    return {
+                                        "type": "common",
+                                        "value": f"({env.get('threshold')}*({right}{env.get('columnsuffix')}2-{right}{env.get('columnsuffix')}1)+{right}{env.get('columnsuffix')}1"
+                                                 f"\n <= (SELECT a+{env.get('threshold')}*(b-a) FROM {env.get('fvtname')} WHERE name=\'{left}\')"
+                                                 f"\n AND {right}{env.get('columnsuffix')}4-({right}{env.get('columnsuffix')}4-{right}{env.get('columnsuffix')}3)*{env.get('threshold')}"
+                                                 f"\n >= (SELECT d-(d-c)*{env.get('threshold')} FROM {env.get('fvtname')} WHERE name=\'{left}\'))",
+                                    }
+                                elif tree.children[1].synth == "!=":
+                                    return {
+                                        "type": "common",
+                                        "value": f"((SELECT d-{env.get('threshold')}*(d-c) FROM {env.get('fvtname')} WHERE name=\'{left}\')"
+                                        f"\n < {env.get('threshold')}*({right}{env.get('columnsuffix')}2-{right}{env.get('columnsuffix')}1)+{right}{env.get('columnsuffix')}1"
+                                        f"\n OR (SELECT (b-a)*{env.get('threshold')}+a FROM {env.get('fvtname')} WHERE name=\'{left}\')"
+                                        f"\n > {right}{env.get('columnsuffix')}4-({right}{env.get('columnsuffix')}4-{right}{env.get('columnsuffix')}3)*{env.get('threshold')})"
+                                    }
+                        else:
+                            return {
+                                "type": "common",
+                                "value": tree.children[0].synth['value'] + tree.children[1].synth +
+                                         tree.children[2].synth['value']
+                            }
+                case NonTerminal(value="T4"):
+                    if len(tree.children) == 1:
+                        return tree.children[0].synth
+                    elif len(tree.children) == 3:
+                        if tree.children[2].synth["type"] != "common" or tree.children[0].synth["type"] != "common":
+                            raise Exception("Оператор сложения для fv/fc не определен")
+                        else:
+                            return {
+                                "type": "common",
+                                "value": tree.children[0].synth['value'] + tree.children[1].synth +
+                                         tree.children[2].synth['value']
+                            }
+                case NonTerminal(value="T5"):
+                    if len(tree.children) == 1:
+                        return tree.children[0].synth
+                    elif len(tree.children) == 3:
+                        if tree.children[2].synth["type"] != "common" or tree.children[0].synth["type"] != "common":
+                            raise Exception("Оператор умножения/деления для fv/fc не определен")
+                        else:
+                            return {
+                                "type": "common",
+                                "value": tree.children[0].synth['value'] + tree.children[1].synth +
+                                         tree.children[2].synth['value']
+                            }
+                case NonTerminal(value="T6"):
+                    if len(tree.children) == 1:
+                        return tree.children[0].synth
+                    elif len(tree.children) == 3:
+                        if tree.children[2].synth["type"] != "common" or tree.children[0].synth["type"] != "common":
+                            raise Exception("Экспонентный оператор для fv/fc не определен")
+                        else:
+                            return {
+                                "type": "common",
+                                "value": tree.children[0].synth['value'] + tree.children[1].synth + tree.children[2].synth['value']
+                            }
+                case NonTerminal(value="Unary"):
+                    if len(tree.children) == 1:
+                        return tree.children[0].synth
+                    elif len(tree.children) == 2:
+                        if tree.children[1].synth['type'] != "common":
+                            raise Exception("Унарный оператор для fv/fc не определен")
+                        else:
+                            return {
+                                "type": "common",
+                                "value": tree.children[0].synth + tree.children[1].synth["value"]
+                            }
+                case NonTerminal(value="Factor"):
+                    if len(tree.children) == 1:
+                        if isinstance(tree.children[0].synth, str):
+                            return {
+                                "type": "common",
+                                "value": tree.children[0].synth,
+                            }
+                        else:
+                            return tree.children[0].synth
+                    else:
+                        d = tree.children[1].synth.copy()
+                        d["value"] = synthAll(tree)
+                        return d
                 case _:
                     return synthAll(tree)

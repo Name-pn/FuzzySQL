@@ -212,11 +212,11 @@ lst.append(Production(NonTerminal("T3"), ProductionBody([NonTerminal("T3"),
                                                          NonTerminal("T4")])))
 lst.append(Production(NonTerminal("T3"), ProductionBody([NonTerminal("T4")])))
 lst.append(Production(NonTerminal("T4"), ProductionBody([NonTerminal("T4"),
-                                                         Terminal(Category.PLUS_AND_MINUS),
+                                                         Terminal(Category.PLUS),
                                                          NonTerminal("T5")])))
 lst.append(Production(NonTerminal("T4"), ProductionBody([NonTerminal("T5")])))
 lst.append(Production(NonTerminal("T5"), ProductionBody([NonTerminal("T5"),
-                                                         Terminal(Category.OPERATION),
+                                                         Terminal(Category.DIVIDE),
                                                          NonTerminal("T6")])))
 lst.append(Production(NonTerminal("T5"), ProductionBody([NonTerminal("T5"),
                                                          Terminal(Category.MULTIPLICATION),
@@ -226,7 +226,7 @@ lst.append(Production(NonTerminal("T6"), ProductionBody([NonTerminal("T6"),
                                                          Terminal(Category.EXPONENTIATION),
                                                          NonTerminal("Unary")])))
 lst.append(Production(NonTerminal("T6"), ProductionBody([NonTerminal("Unary")])))
-lst.append(Production(NonTerminal("Unary"), ProductionBody([Terminal(Category.PLUS_AND_MINUS),
+lst.append(Production(NonTerminal("Unary"), ProductionBody([Terminal(Category.PLUS),
                                                          NonTerminal("Unary")])))
 lst.append(Production(NonTerminal("Unary"), ProductionBody([NonTerminal("Factor")])))
 lst.append(Production(NonTerminal("Factor"), ProductionBody([Terminal(Category.OPEN_BRACKET),
@@ -306,5 +306,17 @@ lst.append(Production(NonTerminal("InsertValues"), ProductionBody([NonTerminal("
 lst.append(Production(NonTerminal("FValue"), ProductionBody([Terminal(Category.FUZZY_VALUE),
                                                              Terminal(Category.COLON),
                                                              Terminal(Category.ID)])))
+lst.append(Production(NonTerminal("Unary"), ProductionBody([Terminal(Category.MINUS),
+                                                         NonTerminal("Unary")])))
+lst.append(Production(NonTerminal("T4"), ProductionBody([NonTerminal("T4"),
+                                                         Terminal(Category.MINUS),
+                                                         NonTerminal("T5")])))
+lst.append(Production(NonTerminal("T5"), ProductionBody([NonTerminal("T5"),
+                                                         Terminal(Category.MOD),
+                                                         NonTerminal("T6")])))
+lst.append(Production(NonTerminal("Command"), ProductionBody([Terminal(Category.DROP),
+                                                         Terminal(Category.TABLE),
+                                                         Terminal(Category.ID)])))
+#lst.append(Production(NonTerminal("Command"), ProductionBody([NonTerminal("FSelect")])))
 
 gr = Grammar(lst, NonTerminal("S\'"))

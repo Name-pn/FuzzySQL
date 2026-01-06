@@ -30,7 +30,8 @@ class ExtensionCursor(cursor):
         flag = self.parser.parse(tokens)
         try:
             if flag:
-                print("Success syntax analize")
+                pass
+                #print("Success syntax analize")
             else:
                 # Показать все строки
                 pd.set_option('display.max_rows', None)
@@ -46,7 +47,9 @@ class ExtensionCursor(cursor):
 
         if flag:
             self.fh.addFuzzyTable()
-            tree.postOrderVisit(lambda tree: broadcast(tree, self.fh))
-            print(tree.synth)
+            tree.postOrderVisit(lambda tree: broadcast(tree, self.fh, self.table))
+            #print(tree.synth)
+            if tree.synth:
+                return super().execute(tree.synth)
             #if tree.synth:
-            #    super().execute(tree.synth)
+

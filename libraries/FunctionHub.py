@@ -12,10 +12,10 @@ class FunctionHub():
                             f"WHERE table_schema=\'public\' AND table_name=\'{self.table.get('fvtname')}\')")
         exists = self.cursor.fetchone()[0]
         if not exists:
-            print(f"Создается служебная таблица {self.table.get('fvtname')}")
+            #print(f"Создается служебная таблица {self.table.get('fvtname')}")
             self.cursor.execute(f"CREATE TABLE {self.table.get('fvtname')} (name VARCHAR(50) PRIMARY KEY, a REAL, b REAL, c REAL, d REAL)")
         else:
-            print(f"Служебная таблица {self.table.get('fvtname')} уже создана")
+            pass #print(f"Служебная таблица {self.table.get('fvtname')} уже создана")
 
     def removeConstrains(self, tableName):
         res = ""

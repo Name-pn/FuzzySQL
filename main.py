@@ -25,9 +25,9 @@ cursor.set_fh(fh)
 cursor.set_table(table)
 print(gr)
 # parser = LALRAnalyzer(gr)
-test_string = "add high_number (999, 1001, 1111, 1200);" \
-              "modify high_number (10, 10, 11, 12);" \
-              "remove high_number;"#"ALTER TABLE table1 MODIFY (column1 VARCHAR(10) NULL, column2 INTEGER NOT NULL, column3 REAL DEFAULT NULL UNIQUE);"
+test_string = "UPDATE table1 SET fc:fuzzy_column = fv:medium_temperature WHERE name = \'medium_temperature\';" #"add high_number (999, 1001, 1111, 1200);" \
+              #"modify high_number (10, 10, 11, 12);" \
+              #"remove high_number;"#"ALTER TABLE table1 MODIFY (column1 VARCHAR(10) NULL, column2 INTEGER NOT NULL, column3 REAL DEFAULT NULL UNIQUE);"
 cursor.execute(test_string)
 table.save()
               #"add medium_value (120, 140, 160, 200);" \
