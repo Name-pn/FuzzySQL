@@ -583,11 +583,6 @@ class SystemTester(unittest.TestCase):
         cls.cursor.set_fh(cls.fh)
         cls.cursor.set_table(cls.table)
         cls.maxDiff = None
-        # commands_after = "DROP TABLE speed_table;" \
-        #                  "remove high_speed;" \
-        #                  "remove medium_speed;" \
-        #                  "remove low_speed;"
-        # cls.cursor.execute(commands_after)
         commands_before = "add high_speed (80, 90, 100, 110);" \
                           "add medium_speed (40, 50, 60, 70);" \
                           "add low_speed(0, 10, 20, 30);" \
@@ -686,6 +681,78 @@ class SystemTester(unittest.TestCase):
         res = self.cursor.fetchall()
         self.assertEqual(set([(0, 40, 80, 120)]), set(res))
 
+class FSelectSystemTester(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.table = Environment()
+        cls.table.load()
+        conn = psycopg2.connect(host="localhost", port=5433,
+                                dbname="postgres", user="postgres",
+                                password="1111", connect_timeout=10, sslmode="prefer")
+        conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+        cls.common_cursor = conn.cursor()
+        conn.cursor_factory = ExtensionCursor
+        cls.cursor: ExtensionCursor = conn.cursor()
+        cls.fh = FunctionHub(cls.common_cursor, cls.table)
+        cls.cursor.set_fh(cls.fh)
+        cls.cursor.set_table(cls.table)
+        cls.maxDiff = None
+        commands_before = "add high_speed (80, 90, 100, 110);" \
+                          "add medium_speed (40, 50, 60, 70);" \
+                          "add low_speed(0, 10, 20, 30);" \
+                          "add car_speed(0, 10, 110, 120);" \
+                          "CREATE TABLE speed_table (speed INT);" \
+                          "INSERT INTO speed_table (speed) VALUES (10), (15), (20), (25), (30), (40), (50), (60), (70), (80), (90), (100), (110), (120);"
+        cls.cursor.execute(commands_before)
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        commands_after = "DROP TABLE speed_table;" \
+                         "remove high_speed;" \
+                         "remove medium_speed;" \
+                         "remove low_speed;" \
+                         "remove car_speed;"
+        cls.cursor.execute(commands_after)
+
+    def test_system_1(self):
+        commands_run = "FSELECT * FROM speed_table WHERE speed = fv:medium_speed;"
+        self.cursor.execute(commands_run)
+        res = self.cursor.fetchall()
+        self.assertEqual(
+            {(10, 0), (15, 0), (20, 0), (25, 0), (30, 0), (40, 0), (50, 1), (60, 1), (70, 0), (80, 0), (90, 0),
+             (100, 0), (110, 0), (120, 0)}, set(res))
+
+    def test_system_2(self):
+        commands_run = "FSELECT * FROM speed_table WHERE fv:low_speed = speed;"
+        self.cursor.execute(commands_run)
+        res = self.cursor.fetchall()
+        self.assertEqual(
+        {(10, 1), (15, 1), (20, 1), (25, 0.5), (30, 0), (40, 0), (50, 0), (60, 0), (70, 0), (80, 0), (90, 0),
+        (100, 0), (110, 0), (120, 0)}, set(res))
+
+    def test_system_3(self):
+        commands_run = "FSELECT * FROM speed_table WHERE not fv:low_speed = speed;"
+        self.cursor.execute(commands_run)
+        res = self.cursor.fetchall()
+        self.assertEqual(
+        {(10, 0), (15, 0), (20, 0), (25, 0.5), (30, 1), (40, 1), (50, 1), (60, 1), (70, 1), (80, 1), (90, 1),
+        (100, 1), (110, 1), (120, 1)}, set(res))
+
+    def test_system_4(self):
+        commands_run = "FSELECT * FROM speed_table WHERE fv:low_speed = speed or speed = fv:medium_speed;"
+        self.cursor.execute(commands_run)
+        res = self.cursor.fetchall()
+        self.assertEqual(
+        {(10, 1), (15, 1), (20, 1), (25, 0.5), (30, 0), (40, 0), (50, 1), (60, 1), (70, 0), (80, 0), (90, 0),
+        (100, 0), (110, 0), (120, 0)}, set(res))
+
+    def test_system_5(self):
+        commands_run = "FSELECT * FROM speed_table WHERE fv:car_speed = speed and speed = fv:medium_speed;"
+        self.cursor.execute(commands_run)
+        res = self.cursor.fetchall()
+        self.assertEqual(
+        {(10, 0), (15, 0), (20, 0), (25, 0), (30, 0), (40, 0), (50, 1), (60, 1), (70, 0), (80, 0), (90, 0),
+        (100, 0), (110, 0), (120, 0)}, set(res))
 
 if __name__ == "__main__":
     unittest.main()

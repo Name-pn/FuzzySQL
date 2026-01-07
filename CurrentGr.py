@@ -317,6 +317,41 @@ lst.append(Production(NonTerminal("T5"), ProductionBody([NonTerminal("T5"),
 lst.append(Production(NonTerminal("Command"), ProductionBody([Terminal(Category.DROP),
                                                          Terminal(Category.TABLE),
                                                          Terminal(Category.ID)])))
-#lst.append(Production(NonTerminal("Command"), ProductionBody([NonTerminal("FSelect")])))
+lst.append(Production(NonTerminal("Command"), ProductionBody([NonTerminal("FSelect")])))
+lst.append(Production(NonTerminal("FSelect"), ProductionBody([Terminal(Category.FSELECT),
+                                                             Terminal(Category.MULTIPLICATION),
+                                                             NonTerminal("SelectFrom"),
+                                                             NonTerminal("FSelectWhere"),
+                                                             NonTerminal("SelectOrder")])))
+lst.append(Production(NonTerminal("FSelect"), ProductionBody([Terminal(Category.FSELECT),
+                                                             NonTerminal("ExprList"),
+                                                             NonTerminal("SelectFrom"),
+                                                             NonTerminal("FSelectWhere"),
+                                                             NonTerminal("SelectOrder"),
+                                                             NonTerminal("SelectWith")])))
+lst.append(Production(NonTerminal("FSelectWhere"), ProductionBody([Epsilon()])))
+lst.append(Production(NonTerminal("FSelectWhere"), ProductionBody([Terminal(Category.WHERE),
+                                                                  NonTerminal("FExpr")])))
+lst.append(Production(NonTerminal("FExpr"), ProductionBody([NonTerminal("FExpr"),
+                                                              Terminal(Category.OR),
+                                                              NonTerminal("FT1")])))
+lst.append(Production(NonTerminal("FExpr"), ProductionBody([NonTerminal("FT1")])))
+lst.append(Production(NonTerminal("FT1"), ProductionBody([NonTerminal("FT1"),
+                                                              Terminal(Category.AND),
+                                                              NonTerminal("FT2")])))
+lst.append(Production(NonTerminal("FT1"), ProductionBody([NonTerminal("FT2")])))
+lst.append(Production(NonTerminal("FT2"), ProductionBody([Terminal(Category.NOT),
+                                                              NonTerminal("FT2")])))
+lst.append(Production(NonTerminal("FT2"), ProductionBody([NonTerminal("FT3")])))
+lst.append(Production(NonTerminal("FT3"), ProductionBody([NonTerminal("FValue"),
+                                                         Terminal(Category.EQUAL),
+                                                         NonTerminal("Name")])))
+lst.append(Production(NonTerminal("FT3"), ProductionBody([NonTerminal("Name"),
+                                                         Terminal(Category.EQUAL),
+                                                         NonTerminal("FValue")])))
+lst.append(Production(NonTerminal("FT3"), ProductionBody([NonTerminal("FFactor")])))
+lst.append(Production(NonTerminal("FFactor"), ProductionBody([Terminal(Category.OPEN_BRACKET),
+                                                             NonTerminal("FExpr"),
+                                                             Terminal(Category.CLOSE_BRACKET)])))
 
 gr = Grammar(lst, NonTerminal("S\'"))

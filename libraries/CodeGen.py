@@ -101,6 +101,10 @@ def is_drop_table(tree: TreeCstNode):
     return len(tree.children) == 3 and \
            tree.children[0].symbol == Terminal(Category.DROP)
 
+def is_fselect(tree: TreeCstNode):
+    return len(tree.children) == 1 and\
+            tree.children[0].symbol.value == "FSelect"
+
 def output(tree:TreeCstNode):
     print("Node symbol = ", tree.symbol, "Synth = ", tree.synth)
 
@@ -292,6 +296,19 @@ def get_fuzzy_value(tree: TreeCstNode):
             break
     return tree.children[2].synth
 
+def get_query_ft3(id, name, table):
+    select_a = f"(select a from {table.get('fvtname')} where name = \'{name}\')"
+    select_b = f"(select b from {table.get('fvtname')} where name = \'{name}\')"
+    select_c = f"(select c from {table.get('fvtname')} where name = \'{name}\')"
+    select_d = f"(select d from {table.get('fvtname')} where name = \'{name}\')"
+    return f"case\n" \
+           f"when {id} <= {select_a} then 0\n" \
+           f"when {id} <= {select_b} then ({id} - {select_a}) / ({select_b} - {select_a})\n" \
+           f"when {id} <= {select_c} then 1\n" \
+           f"when {id} <= {select_d} then ({select_d} - {id}) / ({select_d} - {select_c})\n" \
+           f"else 0\n" \
+           f"end\n"
+
 def broadcast_body(tree: TreeCstNode, table: Environment, fh: FunctionHub):
     match tree.symbol.type:
         case SymbolType.TERMINAL:
@@ -381,6 +398,8 @@ def broadcast_body(tree: TreeCstNode, table: Environment, fh: FunctionHub):
                     if is_select(tree):
                         return tree.children[0].synth
                     if is_drop_table(tree):
+                        return synthAll(tree)
+                    if is_fselect(tree):
                         return synthAll(tree)
                 case NonTerminal(value="Select"):
                     return synthAll(tree)
@@ -745,5 +764,61 @@ def broadcast_body(tree: TreeCstNode, table: Environment, fh: FunctionHub):
                         d = tree.children[1].synth.copy()
                         d["value"] = synthAll(tree)
                         return d
+                case NonTerminal(value="FFactor"):
+                    return tree.children[1]
+                case NonTerminal(value="FT3"):
+                    if tree.children[1].symbol == Terminal(Category.EQUAL):
+                        if tree.children[0].symbol.value == NonTerminal("FValue").value:
+                            id = tree.children[2].synth
+                            name = tree.children[0].synth['value']
+                            return get_query_ft3(id, name, table)
+                        else:
+                            id = tree.children[0].synth
+                            name = tree.children[2].synth['value']
+                            return get_query_ft3(id, name, table)
+                case NonTerminal(value="FT2"):
+                    if len(tree.children) == 1:
+                        return tree.children[0].synth
+                    else:
+                        return "(1 - " + tree.children[1].synth + ")"
+                case NonTerminal(value="FT1"):
+                    if len(tree.children) == 1:
+                        return tree.children[0].synth
+                    else:
+                        return "least(" + tree.children[0].synth + ", " + tree.children[2].synth + ")"
+                case NonTerminal(value="FExpr"):
+                    if len(tree.children) == 1:
+                        return tree.children[0].synth
+                    else:
+                        return "GREATEST(" + tree.children[0].synth + ", " + tree.children[2].synth + ")"
+                case NonTerminal(value="FSelectWhere"):
+                    if len(tree.children) == 1:
+                        return ""
+                    else:
+                        return tree.children[1].synth
+                case NonTerminal(value="FSelect"):
+                    if len(tree.children) == 5:
+                        add = ""
+                        order_add = ""
+                        if tree.children[4].synth:
+                            order_add = tree.children[4].synth
+                        else:
+                            order_add = "order by mf desc"
+                        if tree.children[3].synth:
+                            add = ", " + tree.children[3].synth + " as mf"
+                        return "SELECT " + tree.children[1].synth + add + " " + tree.children[2].synth + " " \
+                               + order_add + " "
+                    else:
+                        add = ""
+                        order_add = ""
+                        if tree.children[4].synth:
+                            order_add = tree.children[4].synth
+                        else:
+                            order_add = "order by mf desc"
+                        if tree.children[3].synth:
+                            add = ", " + tree.children[3].synth + " as mf"
+
+                        return "SELECT " + tree.children[1].synth + add + " " + tree.children[2].synth + " " \
+                               + order_add + " " + tree.children[5].synth
                 case _:
                     return synthAll(tree)

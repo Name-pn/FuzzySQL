@@ -12,6 +12,7 @@ class CategoryRegex(Enum):
     #TYPE1 = r"\b(?:CHARACTER|CHAR|VARCHAR|BIT|FLOAT|TIME|TIMESTAMP)\b"
     #TYPE2 = r"\b(?:DEC|DECIMAL|NUMERIC)\b"
     ADD = r"\bADD\b"
+    FSELECT = r"\bFSELECT\b"
     SELECT = r"\bSELECT\b"
     FROM = r"\bFROM\b"
     WHERE = r"\bWHERE\b"
@@ -84,6 +85,7 @@ class Category(Enum):
     #TYPE1 = auto()
     #TYPE2 = auto()
     ADD = auto()
+    FSELECT = auto()
     SELECT = auto()
     FROM = auto()
     WHERE = auto()
