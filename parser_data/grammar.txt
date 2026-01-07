@@ -1,0 +1,127 @@
+GRAMMAR
+start: S'
+S' -> S
+Num -> number
+Num -> real_number
+S -> Command
+S -> Command separator
+S -> Command separator S
+Command -> add id open_bracket Num comma Num comma Num comma Num close_bracket
+Command -> modify id open_bracket Num comma Num comma Num comma Num close_bracket
+Command -> remove id
+Command -> create table id open_bracket Columns close_bracket
+Command -> alter table id add open_bracket Columns close_bracket
+Command -> alter table id modify open_bracket Columns close_bracket
+Command -> alter table id drop open_bracket ColumnsID close_bracket
+Command -> alter table id rename id id
+Command -> set id Value
+Command -> insert into id open_bracket ColumnsID close_bracket values InsertValues
+Command -> insert into id values InsertValues
+Command -> update id set AssigmentList SelectWhere
+Assigment -> ColumnID equal Expr
+AssigmentList -> Assigment
+AssigmentList -> Assigment comma AssigmentList
+Command -> delete from id
+Command -> delete from id where Expr
+Command -> Select
+Select -> select multiplication SelectFrom SelectWhere SelectOrder
+Select -> select ExprList SelectFrom SelectWhere SelectOrder SelectWith
+SelectWith -> ε
+SelectWith -> with Num
+SelectOrder -> ε
+SelectOrder -> order by OrderList
+OrderList -> OrderEl comma OrderList
+OrderList -> OrderEl
+OrderEl -> Expr OrderType
+OrderType -> ε
+OrderType -> asc
+OrderType -> desc
+SelectFrom -> ε
+SelectFrom -> from TableRefs
+SelectWhere -> ε
+SelectWhere -> where Expr
+TableRefs -> TableRefs comma TableRef
+TableRefs -> TableRef
+TableRef -> Name cross join TableRef
+TableRef -> Name
+TableRef -> Name inner join TableRef
+TableRef -> Name left OptionalOuter join TableRef
+TableRef -> Name right OptionalOuter join TableRef
+TableRef -> Name full OptionalOuter join TableRef
+OptionalOuter -> outer
+OptionalOuter -> ε
+ExprList -> Expr comma ExprList
+ExprList -> Expr
+Expr -> Expr or T1
+Expr -> T1
+T1 -> T1 and T2
+T1 -> T2
+T2 -> not T2
+T2 -> T3
+T3 -> T3 comparison T4
+T3 -> T3 equal T4
+T3 -> T4
+T4 -> T4 plus T5
+T4 -> T5
+T5 -> T5 divide T6
+T5 -> T5 multiplication T6
+T5 -> T6
+T6 -> T6 exponentiation Unary
+T6 -> Unary
+Unary -> plus Unary
+Unary -> Factor
+Factor -> open_bracket Expr close_bracket
+Factor -> FValue
+Factor -> FColumn
+Factor -> ValueOrID
+Name -> Name dot id
+Name -> id
+Columns -> Column comma Columns
+Columns -> Column
+Column -> id Type Attrs
+Type -> type
+Type -> type open_bracket number close_bracket
+Type -> type open_bracket number comma number close_bracket
+Attrs -> ε
+Attrs -> Attr Attrs
+Attr -> unique
+Attr -> null
+Attr -> not null
+Attr -> primary key
+Attr -> default ValueOrNull
+Value -> string
+Value -> Num
+ValueOrNull -> Value
+ValueOrNull -> null
+Values -> Value comma Values
+Values -> Value
+ValueOrID -> Name
+ValueOrID -> Value
+FColumn -> fuzzy_column colon id
+ColumnID -> id
+ColumnID -> FColumn
+ColumnsID -> ColumnID
+ColumnsID -> ColumnID comma ColumnsID
+InsertValue -> open_bracket Values close_bracket
+InsertValues -> InsertValue
+InsertValues -> InsertValue comma InsertValues
+FValue -> fuzzy_value colon id
+Unary -> minus Unary
+T4 -> T4 minus T5
+T5 -> T5 mod T6
+Command -> drop table id
+Command -> FSelect
+FSelect -> fselect multiplication SelectFrom FSelectWhere SelectOrder
+FSelect -> fselect ExprList SelectFrom FSelectWhere SelectOrder SelectWith
+FSelectWhere -> ε
+FSelectWhere -> where FExpr
+FExpr -> FExpr or FT1
+FExpr -> FT1
+FT1 -> FT1 and FT2
+FT1 -> FT2
+FT2 -> not FT2
+FT2 -> FT3
+FT3 -> FValue equal Name
+FT3 -> Name equal FValue
+FT3 -> FFactor
+FFactor -> open_bracket FExpr close_bracket
