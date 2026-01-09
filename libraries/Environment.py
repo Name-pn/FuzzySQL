@@ -9,8 +9,8 @@ class Environment():
     def copy(self):
         return copy.deepcopy(self)
 
-    def save(self):
-        with open('conf.pkl', 'wb') as f:
+    def save(self, filename):
+        with open(filename, 'wb') as f:
             pickle.dump(self.table, f)
 
     def load(self, path = 'conf.pkl'):

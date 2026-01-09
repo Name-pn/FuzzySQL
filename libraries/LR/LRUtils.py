@@ -1,5 +1,7 @@
 import copy
 
+from tqdm import tqdm
+
 from libraries.Grammar.Grammar import Grammar
 from libraries.SetOfItems import SetOfItems
 from libraries.Symbol.Dot import Dot
@@ -74,6 +76,7 @@ class LRUtils():
         C = [self.closureLR(start)]
         S = self.gr.get_symbols()
         f = True
+        pbar = tqdm(desc="Построение состояний", unit="итераций")
         while f:
             f = False
             for el in C:
@@ -82,12 +85,18 @@ class LRUtils():
                     if not next_state.is_empty() and not next_state in C:
                         f = True
                         C.append(next_state)
+                        pbar.set_postfix({"Состояний": len(C)})
+            pbar.update(1)
         return C
 
-    def write_states(self, states: list[SetOfItems]):
+    def get_states_str(self, states: list[SetOfItems]):
         index = 0
+        states_str = ""
         for state in states:
             new_g = self.grammar_to_states(state)
-            print("I" + str(index))
-            print(new_g)
+            states_str = states_str + "I" + str(index) + "\n" + str(new_g) + "\n"
             index += 1
+        return states_str
+    def write_states(self, states: list[SetOfItems]):
+        res = self.get_states_str(states)
+        print(res)

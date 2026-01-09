@@ -9,7 +9,7 @@ if __name__ == "__main__":
     command = "SELECT * FROM table1;"
 
     table = Environment()
-    table.load("conf.pkl")
+    table.load("./parser_data/conf.pkl")
 
     lexer = SQLLexer(table)
     grammar_from_txt = Grammar.load("parser_data/grammar.txt")

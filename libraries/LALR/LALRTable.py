@@ -8,15 +8,16 @@ from libraries.Command import LRError, LRShift, LRReduce, LRAccept, LRState, Com
 from libraries.Utils import find
 from tqdm import tqdm
 
+artifacts_dir = "./artifacts/"
 class LALRTable(pd.DataFrame):
-    def __init__(self, gr:Grammar):
+    def __init__(self, gr:Grammar, save_artifacts: bool = True):
         utils = LALRUtils(gr)
         S1 = gr.get_terminals()
         S1.append(EndSymbol())
         S2 = gr.get_nonterminals()
         S = S1 + S2
         states = utils.combineBases()
-        #print(utils.write_states(states))
+        states_str = utils.get_states_str(states)
         indexes = [i for i in range(len(states))]
         array = [[LRError() for el in S] for el in indexes]
         super().__init__(array, indexes, S)
@@ -45,7 +46,10 @@ class LALRTable(pd.DataFrame):
                     s = point[2]
                     self.check(i_state, s, LRReduce(point[0]))
                     self.loc[i_state, s] = LRReduce(point[0])
-        #print(self)
+        if save_artifacts:
+            with open(artifacts_dir + "states.txt", "w", encoding="utf-8") as file:
+                file.write(states_str)
+            self.to_excel(artifacts_dir + "parser_table.xlsx")
 
     def check(self, i_state, s, new_command):
         if self.loc[i_state, s] != LRError():

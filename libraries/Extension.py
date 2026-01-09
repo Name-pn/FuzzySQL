@@ -1,16 +1,15 @@
-from psycopg2.extensions import cursor, connection
+from psycopg2.extensions import cursor
 
-from CurrentGr import gr
 from libraries.CodeGen import broadcast
-from libraries.Environment import Environment
+from libraries.Grammar.Grammar import Grammar
 from libraries.Lexer import SQLLexer
-from libraries.FunctionHub import FunctionHub
 import pandas as pd
 from libraries.LALR.LALRAnalyzerCST import LALRAnalyzerCST
 
 class ExtensionCursor(cursor):
     def __init__(self, *args, **kwargs):
-        self.parser = LALRAnalyzerCST(gr)
+        grammar = Grammar.load("./parser_data/grammar.txt")
+        self.parser = LALRAnalyzerCST(grammar)
         self.fh = None
         self.table = None
         super().__init__(*args, **kwargs)

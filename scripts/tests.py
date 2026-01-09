@@ -3,20 +3,21 @@ import unittest
 import psycopg2
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 
-from CurrentGr import gr
 from libraries.CodeGen import broadcast
 from libraries.Environment import Environment
 from libraries.Extension import ExtensionCursor
 from libraries.FunctionHub import FunctionHub
+from libraries.Grammar.Grammar import Grammar
 from libraries.LALR.LALRAnalyzerCST import LALRAnalyzerCST
 from libraries.Lexer import SQLLexer
 
 class TesterSyntax(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        cls.parser = LALRAnalyzerCST(gr)
+        grammar = Grammar.load("./parser_data/grammar.txt")
+        cls.parser = LALRAnalyzerCST(grammar)
         cls.table = Environment()
-        cls.table.load()
+        cls.table.load("./parser_data/conf.pkl")
         cls.lexer = SQLLexer(cls.table)
 
     def test_add_command(self):
@@ -129,9 +130,10 @@ class TesterSyntax(unittest.TestCase):
 class TesterBroadcast(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        cls.parser = LALRAnalyzerCST(gr)
+        grammar = Grammar.load("./parser_data/grammar.txt")
+        cls.parser = LALRAnalyzerCST(grammar)
         cls.table = Environment()
-        cls.table.load()
+        cls.table.load("./parser_data/conf.pkl")
         cls.lexer = SQLLexer(cls.table)
         conn = psycopg2.connect(host="localhost", port=5433,
                                 dbname="postgres", user="postgres",
@@ -570,8 +572,9 @@ class TesterBroadcast(unittest.TestCase):
 class SystemTester(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
+        grammar = Grammar.load("./parser_data/grammar.txt")
         cls.table = Environment()
-        cls.table.load()
+        cls.table.load("./parser_data/conf.pkl")
         conn = psycopg2.connect(host="localhost", port=5433,
                                 dbname="postgres", user="postgres",
                                 password="1111", connect_timeout=10, sslmode="prefer")
@@ -685,7 +688,7 @@ class FSelectSystemTester(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.table = Environment()
-        cls.table.load()
+        cls.table.load("./parser_data/conf.pkl")
         conn = psycopg2.connect(host="localhost", port=5433,
                                 dbname="postgres", user="postgres",
                                 password="1111", connect_timeout=10, sslmode="prefer")
