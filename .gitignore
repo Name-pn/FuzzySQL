@@ -1,5 +1,5 @@
 .venv/
 .idea/
 tmp.xlsx
-test*
-tmp*
+test.png
+tmp.txt
