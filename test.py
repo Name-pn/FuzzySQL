@@ -1,3 +1,3 @@
-lst = [1, 2, 3, 4]
-lst.clear()
-print(lst)
+string = "abcd"
+string.r
+print(string)
