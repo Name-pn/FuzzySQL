@@ -5,7 +5,7 @@ from libraries.SetOfItems import SetOfItems
 
 
 class LALRUtils(LRUtils):
-    def getBase(self, state: SetOfItems):
+    def getBase(self, state: SetOfItems)->set[(int, int)]:
         res = SetOfItems()
         for row, sym, letter in state.set:
             res.append((row, sym))
@@ -13,14 +13,14 @@ class LALRUtils(LRUtils):
         #res = list(st)
         return st
 
-    def getIndexesThatBase(self, base, all):
+    def getIndexesThatBase(self, base: set[(int, int)], all: list[SetOfItems])-> list[int]:
         res = []
         for index, el in enumerate(all):
             if base == self.getBase(el):
                 res.append(index)
         return res
 
-    def union(self, indexes, lst):
+    def union(self, indexes: list[int], lst: list[SetOfItems])->SetOfItems:
         st = SetOfItems()
         for index in indexes:
             for el in lst[index].set:
@@ -30,7 +30,7 @@ class LALRUtils(LRUtils):
         return st
 
 
-    def combineBases(self):
+    def combineBases(self)->list[SetOfItems]:
         all = self.items()
         res = []
         st = set()
@@ -43,7 +43,7 @@ class LALRUtils(LRUtils):
                 st.update(lst)
         return res
 
-    def find(self, states: [SetOfItems], next: SetOfItems):
+    def find(self, states: [SetOfItems], next: SetOfItems)->int:
         base = self.getBase(next)
         for index, el in enumerate(states):
             st = set(self.getBase(el))

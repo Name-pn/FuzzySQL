@@ -1,12 +1,14 @@
 import pandas as pd
 
 from libraries.Environment import Environment
+#from libraries.Symbol.Terminal import tokenSpecificationTest
 from libraries.LALR.LALRAnalyzerCST import LALRAnalyzerCST
-from libraries.Lexer import SQLLexer
+from libraries.LR.LRAnalyzer import LRAnalyzer
+from libraries.Lexer import SQLLexer, DefaultLexer
 from libraries.Grammar.Grammar import Grammar
 
 if __name__ == "__main__":
-    command = "SELECT * FROM table1;"
+    command = "ADD a(5, 4.5, 5, 5.0);"
 
     table = Environment()
     table.load("./parser_data/conf.pkl")
@@ -16,7 +18,10 @@ if __name__ == "__main__":
     parser = LALRAnalyzerCST(grammar_from_txt)
 
     tokens = lexer.tokenize(command)
-    tree = parser.parse(tokens)
+    try:
+        tree = parser.parse(tokens)
+    except Exception as e:
+        print(e.__str__())
 
     pd.set_option('display.width', 400)
     pd.set_option('display.max_columns', None)

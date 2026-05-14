@@ -88,7 +88,7 @@ class Analyzer(abc.ABC):
             if self.table.loc[state, symbol].type == CommandType.SHIFT:
                 self.history_add(tokens, index, CommandType.SHIFT)
                 self._on_shift(state, symbol)
-                self.symbols.append(tokens[index])
+                self.symbols.append(tokens[index]) #.lexem
                 self.stack.append(self.table.loc[state, symbol].value)
                 index += 1
             elif self.table.loc[state, symbol].type == CommandType.REDUCE:

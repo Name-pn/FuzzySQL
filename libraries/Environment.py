@@ -40,3 +40,4 @@ class Environment():
     def addEnv(self):
         newEnv = Environment()
         newEnv.prev = self
+        return newEnv

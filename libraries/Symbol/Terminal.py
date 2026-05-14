@@ -1,89 +1,24 @@
 from enum import Enum, auto
+from typing import Optional
 
+from libraries.Environment import Environment
 from libraries.Symbol.Symbol import Symbol
 from libraries.Symbol.SymbolType import SymbolType
-
-class CategoryRegex(Enum):
-    UNDEF = r"312"
-    FUZZY_VALUE = r"321"
-    FUZZY_COLUMN = r"123"
-    TYPE = r"\b(?:INT|INTEGER|REAL|DATE|INTERVAL|FUZZY|CHARACTER|CHAR|VARCHAR|BIT|FLOAT|TIME|TIMESTAMP|DEC|DECIMAL|NUMERIC)\b"
-    #TYPE0 = r"\b(?:INT|INTEGER|REAL|DATE|INTERVAL|FUZZY)\b"
-    #TYPE1 = r"\b(?:CHARACTER|CHAR|VARCHAR|BIT|FLOAT|TIME|TIMESTAMP)\b"
-    #TYPE2 = r"\b(?:DEC|DECIMAL|NUMERIC)\b"
-    ADD = r"\bADD\b"
-    FSELECT = r"\bFSELECT\b"
-    SELECT = r"\bSELECT\b"
-    FROM = r"\bFROM\b"
-    WHERE = r"\bWHERE\b"
-    GROUP = r"\bGROUP\b"
-    BY = r"\bBY\b"
-    ORDER = r"\bORDER\b"
-    ASC = r"\bASC\b"
-    DESC = r"\bDESC\b"
-    OR = r"\bOR\b"
-    AND = r"\bAND\b"
-    NOT = r"\bNOT\b"
-    EXISTS = r"\bEXISTS\b"
-    HAVING = r"\bHAVING\b"
-    WITH = r"\bWITH\b"
-    OUTER = r"\bOUTER\b"
-    CROSS = r"\bCROSS\b"
-    JOIN = r"\bJOIN\b"
-    LEFT = r"\bLEFT\b"
-    RIGHT = r"\bRIGHT\b"
-    TABLE = r"\bTABLE\b"
-    INNER = r"\bINNER\b"
-    FULL = r"\bFULL\b"
-    MODIFY = r"\bMODIFY\b"
-    REMOVE = r"\bREMOVE\b"
-    CREATE = r"\bCREATE\b"
-    SET = r"\bSET\b"
-    INSERT = r"\bINSERT\b"
-    INTO = r"\bINTO\b"
-    VALUES = r"\bVALUES\b"
-    ALTER = r"\bALTER\b"
-    RENAME = r"\bRENAME\b"
-    DROP = r"\bDROP\b"
-    UNIQUE = r"\bUNIQUE\b"
-    PRIMARY = r"\bPRIMARY\b"
-    KEY = r"\bKEY\b"
-    DEFAULT = r"\bDEFAULT\b"
-    NULL = r"\bNULL\b"
-    UPDATE_R = r"\bUPDATE\b"
-    DELETE_R = r"\bDELETE\b"
-    #KEYWORD_R = r"\b(?:select|from|where|group|by|order|or|and|not|exists|having|join|left|right|" \
-    #            r"table|inner|modify|remove|add|create|set|insert|into|values|alter|rename|drop|unique" \
-    #            r"|primary|key|AUTO_INCREMENT)\b"
-    ID_R = r"[A-Za-z][A-Za-z0-9_]*"
-    DOT_R = r"\."
-    COMMA_R = r"\,"
-    SEPARATOR_R = r";"
-    REAL_NUMBER_R = r"[0-9]+\.[0-9]*"
-    NUMBER_R = r"[0-9]+"
-    STRING_R = r"['][^']*[']"
-    SPACE_R = r"\s+"
-    COMMENT_R = r"\-\-[^\n\r]*"
-    OPEN_BRACKET_R = r"\("
-    CLOSE_BRACKET_R = r"\)"
-    COLON_R = ":"
-    EQUAL = "="
-    COMPARISON = r"!=|>=|<=|<<|>>|=!|!=!|>!|<!|>=!|<=!|<>|[<>]"
-    PLUS = r"\+"
-    MINUS = r"-"
-    MULTIPLICATION = r"\*"
-    DIVIDE = r"\/"
-    MOD = r"\%"
-    EXPONENTIATION_R = r"[\^]"
-
-class Category(Enum):
-    UNDEF = 0
+from dataclasses import dataclass
+class TokenType(Enum):
+    """Единый enum для всех типов токенов"""
+    # ASTERISK = auto()
+    # EQUAL_S = auto()
+    # ID_VAR = auto()
+    # Специальные токены
+    UNDEF = auto()
     FUZZY_VALUE = auto()
     FUZZY_COLUMN = auto()
+
+    # Типы данных
     TYPE = auto()
-    #TYPE0 = auto()
-    #TYPE1 = auto()
-    #TYPE2 = auto()
+
+    # Ключевые слова SQL
     ADD = auto()
     FSELECT = auto()
     SELECT = auto()
@@ -125,7 +60,12 @@ class Category(Enum):
     NULL = auto()
     UPDATE = auto()
     DELETE = auto()
-    #KEYWORD = 6
+
+    # Пробельные символы (игнорируем)
+    SPACE = auto()
+    COMMENT = auto()
+
+    # Идентификаторы и литералы
     ID = auto()
     DOT = auto()
     COMMA = auto()
@@ -133,11 +73,9 @@ class Category(Enum):
     REAL_NUMBER = auto()
     NUMBER = auto()
     STRING = auto()
-    SPACE = auto()
-    COMMENT = auto()
-    OPEN_BRACKET = auto()
-    CLOSE_BRACKET = auto()
     COLON = auto()
+
+    # Операторы
     EQUAL = auto()
     COMPARISON = auto()
     PLUS = auto()
@@ -147,9 +85,155 @@ class Category(Enum):
     MOD = auto()
     EXPONENTIATION = auto()
 
+    # Скобки
+    OPEN_BRACKET = auto()
+    CLOSE_BRACKET = auto()
+
+
+@dataclass(frozen=True)
+class TokenDefinition:
+    """
+    Определение токена: тип и регулярное выражение.
+    Неизменяемый класс для безопасности.
+    """
+    type: TokenType
+    pattern: str
+    is_literal: bool = False  # True для токенов, которые нужно сохранять как литералы (ID, NUMBER, STRING)
+    is_ignored: bool = False  # True для токенов, которые нужно игнорировать (SPACE, COMMENT)
+
+    def __post_init__(self):
+        """Валидация после создания"""
+        if not self.pattern:
+            raise ValueError(f"Pattern for {self.type} cannot be empty")
+
+# tokenSpecificationTest = [
+#     TokenDefinition(TokenType.EQUAL_S, "=", True, False),
+#     TokenDefinition(TokenType.ID_VAR, "id", True, False),
+#     TokenDefinition(TokenType.ASTERISK, r"\*", True, False)
+# ]
+class TokenSpecification:
+    """
+    Спецификация всех токенов языка.
+    Единое место для определения грамматики.
+    """
+
+    # Базовые паттерны (для переиспользования)
+    _KEYWORDS = {
+        TokenType.ADD: r"ADD",
+        TokenType.FSELECT: r"FSELECT",
+        TokenType.SELECT: r"SELECT",
+        TokenType.FROM: r"FROM",
+        TokenType.WHERE: r"WHERE",
+        TokenType.GROUP: r"GROUP",
+        TokenType.BY: r"BY",
+        TokenType.ORDER: r"ORDER",
+        TokenType.ASC: r"ASC",
+        TokenType.DESC: r"DESC",
+        TokenType.OR: r"OR",
+        TokenType.AND: r"AND",
+        TokenType.NOT: r"NOT",
+        TokenType.EXISTS: r"EXISTS",
+        TokenType.HAVING: r"HAVING",
+        TokenType.WITH: r"WITH",
+        TokenType.OUTER: r"OUTER",
+        TokenType.CROSS: r"CROSS",
+        TokenType.JOIN: r"JOIN",
+        TokenType.LEFT: r"LEFT",
+        TokenType.RIGHT: r"RIGHT",
+        TokenType.TABLE: r"TABLE",
+        TokenType.INNER: r"INNER",
+        TokenType.FULL: r"FULL",
+        TokenType.MODIFY: r"MODIFY",
+        TokenType.REMOVE: r"REMOVE",
+        TokenType.CREATE: r"CREATE",
+        TokenType.SET: r"SET",
+        TokenType.INSERT: r"INSERT",
+        TokenType.INTO: r"INTO",
+        TokenType.VALUES: r"VALUES",
+        TokenType.ALTER: r"ALTER",
+        TokenType.RENAME: r"RENAME",
+        TokenType.DROP: r"DROP",
+        TokenType.UNIQUE: r"UNIQUE",
+        TokenType.PRIMARY: r"PRIMARY",
+        TokenType.KEY: r"KEY",
+        TokenType.DEFAULT: r"DEFAULT",
+        TokenType.NULL: r"NULL",
+        TokenType.UPDATE: r"UPDATE",
+        TokenType.DELETE: r"DELETE",
+    }
+
+    # Типы данных SQL
+    _SQL_TYPES = r"INT|INTEGER|REAL|DATE|INTERVAL|FUZZY|CHARACTER|CHAR|VARCHAR|BIT|FLOAT|TIME|TIMESTAMP|DEC|DECIMAL|NUMERIC"
+
+    # Все определения токенов
+    DEFINITIONS = [
+        # Ключевые слова (должны идти до ID)
+        *[TokenDefinition(type, rf"\b{pattern}\b")
+          for type, pattern in _KEYWORDS.items()],
+
+        # Типы данных
+        TokenDefinition(TokenType.TYPE, rf"\b(?:{_SQL_TYPES})\b", is_literal=True),
+
+        # Специальные префиксы (будут заменены динамически)
+        TokenDefinition(TokenType.FUZZY_VALUE, r"\b{valueprefix}\b"),
+        TokenDefinition(TokenType.FUZZY_COLUMN, r"\b{columnprefix}\b"),
+
+        # Игнорируемые токены
+        TokenDefinition(TokenType.SPACE, r"\s+", is_ignored=True),
+        TokenDefinition(TokenType.COMMENT, r"--[^\n\r]*", is_ignored=True),
+
+        # Идентификаторы и литералы
+        TokenDefinition(TokenType.ID, r"[A-Za-z][A-Za-z0-9_]*", is_literal=True),
+        TokenDefinition(TokenType.STRING, r"'[^']*'", is_literal=True),
+        TokenDefinition(TokenType.REAL_NUMBER, r"[0-9]+\.[0-9]*", is_literal=True),
+        TokenDefinition(TokenType.NUMBER, r"[0-9]+", is_literal=True),
+
+        # Операторы
+        TokenDefinition(TokenType.EQUAL, r"="),
+        TokenDefinition(TokenType.COMPARISON, r"!=|>=|<=|<<|>>|=!|!=!|>!|<!|>=!|<=!|<>|[<>]", is_literal=True),
+        TokenDefinition(TokenType.PLUS, r"\+"),
+        TokenDefinition(TokenType.MINUS, r"-"),
+        TokenDefinition(TokenType.MULTIPLICATION, r"\*"),
+        TokenDefinition(TokenType.DIVIDE, r"/"),
+        TokenDefinition(TokenType.MOD, r"%"),
+        TokenDefinition(TokenType.EXPONENTIATION, r"\^"),
+
+        # Пунктуация
+        TokenDefinition(TokenType.DOT, r"\."),
+        TokenDefinition(TokenType.COMMA, r","),
+        TokenDefinition(TokenType.SEPARATOR, r";"),
+        TokenDefinition(TokenType.COLON, r":"),
+        TokenDefinition(TokenType.OPEN_BRACKET, r"\("),
+        TokenDefinition(TokenType.CLOSE_BRACKET, r"\)"),
+    ]
+
+    @classmethod
+    def get_patterns(cls, env: Optional[Environment] = None) -> list[tuple[TokenType, str, bool, bool]]:
+        """
+        Возвращает список паттернов с подстановкой динамических значений.
+        """
+        patterns = []
+
+        for defn in cls.DEFINITIONS:
+            pattern = defn.pattern
+
+            # Подставляем динамические значения из окружения
+            if env:
+                pattern = pattern.replace("{valueprefix}", env.get('valueprefix'))
+                pattern = pattern.replace("{columnprefix}", env.get('columnprefix'))
+
+            patterns.append((
+                defn.type,
+                pattern,
+                defn.is_literal,
+                defn.is_ignored
+            ))
+
+        return patterns
+
 
 class Terminal(Symbol):
-    def __init__(self, terminal_type:Category = Category.UNDEF):
+    def __init__(self, terminal_type:TokenType = TokenType.UNDEF):
         super().__init__(terminal_type.name.lower(), SymbolType.TERMINAL)
         self.ttype = terminal_type
 

@@ -1,0 +1,8 @@
+GRAMMAR
+start: S'
+S' -> S
+S -> L equal_s R
+S -> R
+L -> asterisk R
+L -> id_var
+R -> L

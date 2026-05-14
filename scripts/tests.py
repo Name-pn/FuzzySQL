@@ -561,6 +561,7 @@ class TesterBroadcast(unittest.TestCase):
         test_string = "SELECT * FROM table1 WHERE fv:value >> fc:column;"
         tokens = self.lexer.tokenize(test_string)
         tree = self.parser.parse(tokens)
+        raise Exception("An error")
         tree.postOrderVisit(lambda tree: broadcast(tree, self.fh, self.table))
         self.assertEqual(tree.synth,
                          f"SELECT * FROM table1 WHERE (0.2*(column_f2-column_f1)+column_f1\n"

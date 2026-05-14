@@ -35,7 +35,7 @@ def draw(tree: TreeCstNode):
 
 
 if __name__ == "__main__":
-    command = "SELECT * FROM table1; add a(1, 2, 3, 4)"
+    command = "SELECT * FROM table1; SET threshold 0.3"
 
     table = Environment()
     table.load("./parser_data/conf.pkl")

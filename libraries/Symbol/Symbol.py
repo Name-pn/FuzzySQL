@@ -23,5 +23,6 @@ class Symbol:
 
     def is_terminal(self):
         return self.type == SymbolType.TERMINAL
+
 #def is_equal(X: Symbol, Y:Symbol):
 #    return X.value == Y.value and X.type == Y.type

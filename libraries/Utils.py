@@ -44,7 +44,7 @@ def goto(I, G:Grammar, X:Symbol)->SetOfItems:
                 res.append((pair[0], pair[1] + 1))
     return closure(res, G)
 
-def grammar_to_states(I:SetOfItems, G:Grammar):
+def grammar_to_states(I:SetOfItems, G:Grammar)->Grammar:
     J = Grammar([])
     for row, sym in I.set:
         rw = copy.deepcopy(G[row])
@@ -52,7 +52,7 @@ def grammar_to_states(I:SetOfItems, G:Grammar):
         J.append(rw)
     return J
 
-def items(G:Grammar):
+def items(G:Grammar)->list[SetOfItems]:
     start = SetOfItems()
     start.append((0, 0))
     C = [closure(start, G)]
@@ -76,13 +76,13 @@ def write_states(states: list[SetOfItems], G:Grammar):
         print(new_g)
         index += 1
 
-def find(states: [SetOfItems], state: SetOfItems):
+def find(states: [SetOfItems], state: SetOfItems)->int:
     for index, el in enumerate(states):
         if el == state:
             return index
     return -1
 
-def tryFindNonterminalFirst(s: Symbol, gr:Grammar, d: dict):
+def tryFindNonterminalFirst(s: Symbol, gr:Grammar, d: dict)->set[Symbol]:
     if not d.get(s) is None:
         res = d[s]
     else:
@@ -108,7 +108,7 @@ def tryFindNonterminalFirst(s: Symbol, gr:Grammar, d: dict):
     return res
 
 
-def firstDict(gr: Grammar):
+def firstDict(gr: Grammar)->dict[Symbol, set[Symbol]]:
     d = dict()
     S = gr.get_symbols()
     flag = True
@@ -128,7 +128,7 @@ def firstDict(gr: Grammar):
                     flag = True
     return d
 
-def tryFindNonterminalFollow(el:Symbol, gr:Grammar, followDict, firstDict):
+def tryFindNonterminalFollow(el:Symbol, gr:Grammar, followDict: dict[Symbol, set[Symbol]], firstDict: dict[Symbol, set[Symbol]])->set[Symbol]:
     res = set()
     if not followDict.get(el) is None:
         res = followDict[el]
@@ -160,7 +160,7 @@ def tryFindNonterminalFollow(el:Symbol, gr:Grammar, followDict, firstDict):
 
 
 
-def followDict(gr: Grammar):
+def followDict(gr: Grammar)->dict[Symbol, set[Symbol]]:
     d = dict()
     first = firstDict(gr)
     S = gr.get_nonterminals()

@@ -1,0 +1,18 @@
+-- Ключевые слова SQL поддерживаемые средой
+ADD -- дополнительное слово
+FSELECT -- дополнительное слово
+MODIFY, REMOVE -- ...
+-- Далее стандартные слова
+SELECT, FROM, WHERE,
+GROUP, BY, ORDER,
+ASC, DESC, OR,
+AND, NOT, EXISTS,
+HAVING, WITH, OUTER,
+CROSS, JOIN, LEFT,
+RIGHT, TABLE, INNER,
+FULL, CREATE, SET, 
+INSERT, INTO, VALUES, 
+ALTER, RENAME, DROP,
+UNIQUE, PRIMARY, KEY, 
+DEFAULT, NULL, UPDATE, 
+DELETE,

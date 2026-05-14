@@ -3,7 +3,7 @@ from libraries.Grammar.Production import Production
 from libraries.Grammar.ProductionBody import ProductionBody
 from libraries.Symbol.Epsilon import Epsilon
 from libraries.Symbol.NonTerminal import NonTerminal
-from libraries.Symbol.Terminal import Terminal, Category
+from libraries.Symbol.Terminal import Terminal#, Category
 
 lst = []
 lst.append(Production(NonTerminal("S\'"), ProductionBody([NonTerminal("S")])))

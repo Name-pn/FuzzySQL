@@ -18,7 +18,7 @@ class LRUtils():
         self.firstDict = firstDict(gr)
         #self.followDict = followDict(gr)
 
-    def closureLR(self, I: SetOfItems):
+    def closureLR(self, I: SetOfItems)->SetOfItems:
         J = copy.copy(I)
         f = True
         while f:
@@ -48,7 +48,7 @@ class LRUtils():
                                 f = True
         return J
 
-    def goto(self, I: SetOfItems, X:Symbol):
+    def goto(self, I: SetOfItems, X:Symbol)->SetOfItems:
         f = True
         res = SetOfItems()
         while f:
@@ -61,7 +61,7 @@ class LRUtils():
                     res.append((trio[0], trio[1] + 1, trio[2]))
         return self.closureLR(res)
 
-    def grammar_to_states(self, I: SetOfItems):
+    def grammar_to_states(self, I: SetOfItems)->Grammar:
         J = Grammar([])
         for row, sym, letter in I.set:
             rw = copy.deepcopy(self.gr[row])
@@ -70,7 +70,7 @@ class LRUtils():
             J.append(rw)
         return J
 
-    def items(self):
+    def items(self)->list[SetOfItems]:
         start = SetOfItems()
         start.append((0, 0, EndSymbol()))
         C = [self.closureLR(start)]
@@ -89,7 +89,7 @@ class LRUtils():
             pbar.update(1)
         return C
 
-    def get_states_str(self, states: list[SetOfItems]):
+    def get_states_str(self, states: list[SetOfItems])->str:
         index = 0
         states_str = ""
         for state in states:
@@ -97,6 +97,6 @@ class LRUtils():
             states_str = states_str + "I" + str(index) + "\n" + str(new_g) + "\n"
             index += 1
         return states_str
-    def write_states(self, states: list[SetOfItems]):
+    def write_states(self, states: list[SetOfItems])->None:
         res = self.get_states_str(states)
         print(res)

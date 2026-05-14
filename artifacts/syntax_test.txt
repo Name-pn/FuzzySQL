@@ -1,0 +1,8 @@
+SELECT -- KEYWORD
+INT FLOAT -- TYPE
+'Test string' -- STRING
+599 -- NUMBER
++ - = / -- OPERATORS
+id1 id2 -- IDENTIFICATORS
+. , : -- PUNCTUATIONS
+fc fv

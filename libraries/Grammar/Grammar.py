@@ -4,7 +4,7 @@ from libraries.Symbol.Epsilon import Epsilon
 from libraries.Symbol.NonTerminal import NonTerminal
 from libraries.Grammar.Production import Production, ProductionBody
 from libraries.Symbol.SymbolType import SymbolType
-from libraries.Symbol.Terminal import Category, Terminal
+from libraries.Symbol.Terminal import TokenType, Terminal
 
 
 class Grammar():
@@ -42,13 +42,13 @@ class Grammar():
 
     @classmethod
     def _parse_production(cls, string: str)->ProductionBody:
-        symbols = re.split("[\s]+", string)
+        symbols = re.split(r"[\s]+", string)
         res = []
         for s in symbols:
             if re.match("[A-Z]", s):
                 res.append(NonTerminal(s))
             elif re.match("[a-z]", s):
-                cat = Category[s.upper()]
+                cat = TokenType[s.upper()]
                 res.append(Terminal(cat))
             elif re.match("ε", s):
                 res.append(Epsilon())

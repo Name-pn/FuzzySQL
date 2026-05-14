@@ -6,7 +6,7 @@ from libraries.FunctionHub import FunctionHub
 from libraries.Symbol.LTerminal import LTerminal
 from libraries.Symbol.NonTerminal import NonTerminal
 from libraries.Symbol.SymbolType import SymbolType
-from libraries.Symbol.Terminal import Category, Terminal
+from libraries.Symbol.Terminal import TokenType, Terminal
 from libraries.Tree.TreeCst import TreeCstNode
 
 class CategoryColumn(Enum):
@@ -25,73 +25,73 @@ def broadcast(tree: TreeCstNode, fh: FunctionHub, table: Environment):
     #table.load()
     return broadcast_body(tree, table, fh)
 
-def is_modify_command(tree:TreeCstNode):
-    return tree.children[0].symbol == Terminal(Category.MODIFY)
+def is_modify_command(tree:TreeCstNode)->bool:
+    return tree.children[0].symbol == Terminal(TokenType.MODIFY)
 
-def is_remove_command(tree:TreeCstNode):
-    return tree.children[0].symbol == Terminal(Category.REMOVE)
+def is_remove_command(tree:TreeCstNode)->bool:
+    return tree.children[0].symbol == Terminal(TokenType.REMOVE)
 
 def is_create_command(tree:TreeCstNode):
-    return tree.children[0].symbol == Terminal(Category.CREATE)
+    return tree.children[0].symbol == Terminal(TokenType.CREATE)
 
 def is_alter_command(tree:TreeCstNode):
-    return tree.children[0].symbol == Terminal(Category.ALTER)
+    return tree.children[0].symbol == Terminal(TokenType.ALTER)
 
-def is_alter_modify_command(tree:TreeCstNode):
-    return tree.children[0].symbol == Terminal(Category.ALTER) and tree.children[3].symbol == Terminal(Category.MODIFY)
+def is_alter_modify_command(tree:TreeCstNode)->bool:
+    return tree.children[0].symbol == Terminal(TokenType.ALTER) and tree.children[3].symbol == Terminal(TokenType.MODIFY)
 
 def is_alter_drop_command(tree:TreeCstNode):
-    return tree.children[0].symbol == Terminal(Category.ALTER) and tree.children[3].symbol == Terminal(Category.DROP)
+    return tree.children[0].symbol == Terminal(TokenType.ALTER) and tree.children[3].symbol == Terminal(TokenType.DROP)
 
 def is_add_command(tree:TreeCstNode):
-    return len(tree.children) == 11 and tree.children[0].symbol == Terminal(Category.ADD) and \
-           tree.children[1].symbol.ttype == Category.ID and \
-           tree.children[2].symbol.ttype == Category.OPEN_BRACKET and \
+    return len(tree.children) == 11 and tree.children[0].symbol == Terminal(TokenType.ADD) and \
+           tree.children[1].symbol.ttype == TokenType.ID and \
+           tree.children[2].symbol.ttype == TokenType.OPEN_BRACKET and \
            tree.children[3].symbol.type == SymbolType.NONTERMINAL and \
-           tree.children[4].symbol.ttype == Category.COMMA and \
+           tree.children[4].symbol.ttype == TokenType.COMMA and \
            tree.children[5].symbol.type == SymbolType.NONTERMINAL and \
-           tree.children[6].symbol.ttype == Category.COMMA and \
+           tree.children[6].symbol.ttype == TokenType.COMMA and \
            tree.children[7].symbol.type == SymbolType.NONTERMINAL and \
-           tree.children[8].symbol.ttype == Category.COMMA and \
+           tree.children[8].symbol.ttype == TokenType.COMMA and \
            tree.children[9].symbol.type == SymbolType.NONTERMINAL and \
-           tree.children[10].symbol.ttype == Category.CLOSE_BRACKET
+           tree.children[10].symbol.ttype == TokenType.CLOSE_BRACKET
 
 def is_set_command(tree:TreeCstNode):
-    return len(tree.children) == 3 and tree.children[0].symbol == Terminal(Category.SET) and \
-           tree.children[1].symbol.ttype == Category.ID and tree.children[2].symbol.type == SymbolType.NONTERMINAL
+    return len(tree.children) == 3 and tree.children[0].symbol == Terminal(TokenType.SET) and \
+           tree.children[1].symbol.ttype == TokenType.ID and tree.children[2].symbol.type == SymbolType.NONTERMINAL
 
 def is_alter_rename_command(tree:TreeCstNode):
     return len(tree.children) == 6 and \
-           tree.children[0].symbol == Terminal(Category.ALTER) and \
-           tree.children[3].symbol == Terminal(Category.RENAME)
+           tree.children[0].symbol == Terminal(TokenType.ALTER) and \
+           tree.children[3].symbol == Terminal(TokenType.RENAME)
 
 def is_alter_add_command(tree:TreeCstNode):
     return len(tree.children) == 7 and \
-           tree.children[0].symbol == Terminal(Category.ALTER) and \
-           tree.children[3].symbol == Terminal(Category.ADD)
+           tree.children[0].symbol == Terminal(TokenType.ALTER) and \
+           tree.children[3].symbol == Terminal(TokenType.ADD)
 
 def is_insert_into_with_columns(tree:TreeCstNode):
     return len(tree.children) > 3 and \
-           tree.children[3].symbol == Terminal(Category.OPEN_BRACKET) and \
-           tree.children[0].symbol == Terminal(Category.INSERT)
+           tree.children[3].symbol == Terminal(TokenType.OPEN_BRACKET) and \
+           tree.children[0].symbol == Terminal(TokenType.INSERT)
 
 def is_insert_into_without_columns(tree:TreeCstNode):
     return len(tree.children) > 3 and \
-           tree.children[3].symbol == Terminal(Category.VALUES) and \
-           tree.children[0].symbol == Terminal(Category.INSERT)
+           tree.children[3].symbol == Terminal(TokenType.VALUES) and \
+           tree.children[0].symbol == Terminal(TokenType.INSERT)
 
 
 def is_update_set(tree: TreeCstNode):
     return len(tree.children) == 5 and \
-           tree.children[0].symbol == Terminal(Category.UPDATE)
+           tree.children[0].symbol == Terminal(TokenType.UPDATE)
 
 def is_delete_short(tree: TreeCstNode):
     return len(tree.children) == 3 and \
-           tree.children[0].symbol == Terminal(Category.DELETE)
+           tree.children[0].symbol == Terminal(TokenType.DELETE)
 
 def is_delete(tree: TreeCstNode):
     return len(tree.children) == 5 and \
-           tree.children[0].symbol == Terminal(Category.DELETE)
+           tree.children[0].symbol == Terminal(TokenType.DELETE)
 
 def is_select(tree: TreeCstNode):
     return len(tree.children) == 1 and\
@@ -99,7 +99,7 @@ def is_select(tree: TreeCstNode):
 
 def is_drop_table(tree: TreeCstNode):
     return len(tree.children) == 3 and \
-           tree.children[0].symbol == Terminal(Category.DROP)
+           tree.children[0].symbol == Terminal(TokenType.DROP)
 
 def is_fselect(tree: TreeCstNode):
     return len(tree.children) == 1 and\
@@ -265,7 +265,7 @@ def simplify(tree: TreeCstNode):
 def is_paranthesis_node(tree: TreeCstNode):
     n = len(tree.children)
     if tree.symbol == NonTerminal(value="Factor") and \
-        n == 3 and tree.children[0].symbol == Terminal(Category.OPEN_BRACKET):
+        n == 3 and tree.children[0].symbol == Terminal(TokenType.OPEN_BRACKET):
         return True
     else:
         return False
@@ -273,7 +273,7 @@ def is_paranthesis_node(tree: TreeCstNode):
 def is_fuzzy_value_node(tree: TreeCstNode):
     n = len(tree.children)
     if tree.symbol == NonTerminal(value="FValue") and \
-            n == 3 and tree.children[0].symbol == Terminal(Category.FUZZY_VALUE):
+            n == 3 and tree.children[0].symbol == Terminal(TokenType.FUZZY_VALUE):
         return True
     else:
         return False
@@ -313,20 +313,20 @@ def broadcast_body(tree: TreeCstNode, table: Environment, fh: FunctionHub):
     match tree.symbol.type:
         case SymbolType.TERMINAL:
             if isinstance(tree.symbol, LTerminal):
-                if tree.symbol.ttype == Category.STRING:
+                if tree.symbol.ttype == TokenType.STRING:
                     return tree.symbol.lexem[:]#[1:-1]
                 return tree.symbol.lexem
-            if tree.symbol == Terminal(Category.SEPARATOR):
+            if tree.symbol == Terminal(TokenType.SEPARATOR):
                 return ";"
-            if tree.symbol == Terminal(Category.MULTIPLICATION):
+            if tree.symbol == Terminal(TokenType.MULTIPLICATION):
                 return "*"
-            if tree.symbol == Terminal(Category.EQUAL):
+            if tree.symbol == Terminal(TokenType.EQUAL):
                 return "="
-            if tree.symbol == Terminal(Category.COMMA):
+            if tree.symbol == Terminal(TokenType.COMMA):
                 return ","
-            if tree.symbol == Terminal(Category.OPEN_BRACKET):
+            if tree.symbol == Terminal(TokenType.OPEN_BRACKET):
                 return "("
-            if tree.symbol == Terminal(Category.CLOSE_BRACKET):
+            if tree.symbol == Terminal(TokenType.CLOSE_BRACKET):
                 return ")"
             return tree.symbol.value.upper()
         case SymbolType.NONTERMINAL:
@@ -410,7 +410,7 @@ def broadcast_body(tree: TreeCstNode, table: Environment, fh: FunctionHub):
                             res += tree.children[index].synth
                         if index == 0:
                             continue
-                        if child.symbol == Terminal(Category.SEPARATOR):
+                        if child.symbol == Terminal(TokenType.SEPARATOR):
                             if tree.children[index-1].synth == "":
                                 continue
                             else:
@@ -467,7 +467,7 @@ def broadcast_body(tree: TreeCstNode, table: Environment, fh: FunctionHub):
                             "type": [CategoryColumn.FUZZY],
                             "id": [tree.children[0].children[2].symbol.lexem],
                         }
-                    elif tree.children[0].symbol == Terminal(Category.ID):
+                    elif tree.children[0].symbol == Terminal(TokenType.ID):
                         # 1 тип значит айди
                         return {
                             "type": [CategoryColumn.COMMON],
@@ -558,7 +558,7 @@ def broadcast_body(tree: TreeCstNode, table: Environment, fh: FunctionHub):
                     if len(tree.children) == 1:
                         return tree.children[0].synth
                     elif len(tree.children) == 3:
-                        if tree.children[1].symbol == Terminal(Category.EQUAL):
+                        if tree.children[1].symbol == Terminal(TokenType.EQUAL):
                             if tree.children[0].synth['type'] == "common" and tree.children[2].synth['type'] == "common":
                                 return {
                                     "type": "common",
@@ -587,7 +587,7 @@ def broadcast_body(tree: TreeCstNode, table: Environment, fh: FunctionHub):
                                 }
                             else:
                                 raise Exception("fv/fv или fc/fc или common/fv/fc сочетание")
-                        elif tree.children[1].symbol == Terminal(Category.COMPARISON):
+                        elif tree.children[1].symbol == Terminal(TokenType.COMPARISON):
                             if tree.children[0].synth["type"] == "common" and tree.children[2].synth["type"] == "common":
                                 return {
                                     "type": "common",
@@ -767,7 +767,7 @@ def broadcast_body(tree: TreeCstNode, table: Environment, fh: FunctionHub):
                 case NonTerminal(value="FFactor"):
                     return tree.children[1]
                 case NonTerminal(value="FT3"):
-                    if tree.children[1].symbol == Terminal(Category.EQUAL):
+                    if tree.children[1].symbol == Terminal(TokenType.EQUAL):
                         if tree.children[0].symbol.value == NonTerminal("FValue").value:
                             id = tree.children[2].synth
                             name = tree.children[0].synth['value']

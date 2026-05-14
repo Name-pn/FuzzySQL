@@ -18,6 +18,7 @@ class LALRTable(pd.DataFrame):
         S = S1 + S2
         states = utils.combineBases()
         states_str = utils.get_states_str(states)
+        print(states_str)
         indexes = [i for i in range(len(states))]
         array = [[LRError() for el in S] for el in indexes]
         super().__init__(array, indexes, S)
