@@ -1,9 +1,10 @@
 .venv/
 .idea/
+gen/
 tmp.xlsx
 test.png
 tmp.txt
-*__pycache__/
+__pycache__/
 *.py[cod]
 *.pyo
 *.pyd
