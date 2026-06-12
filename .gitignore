@@ -3,3 +3,18 @@
 tmp.xlsx
 test.png
 tmp.txt
+*__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+
+# VSCodeSync local cache (not source of truth)
+.vscode/vscodesync.json
+
+# >>> VSCodeSync managed (do not edit between markers) >>>
+.vscode/vscodesync.json
+.vscode/vscodesync-local-backup/
+.vscodesync-quicktransfer/
+# <<< VSCodeSync managed <<<
+libraries/__pycache__/Analyzer.cpython-310.pyc
