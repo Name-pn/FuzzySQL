@@ -3,7 +3,7 @@ import re
 from libraries.Symbol.Epsilon import Epsilon
 from libraries.Symbol.NonTerminal import NonTerminal
 from libraries.Grammar.Production import Production, ProductionBody
-from libraries.Symbol.SymbolType import SymbolType
+from libraries.Symbol.SymbolType import SymbolType#SymbolType
 from libraries.Symbol.Terminal import TokenType, Terminal
 
 
@@ -96,7 +96,7 @@ class Grammar():
                 res.append(el)
         return res
 
-    def get_nonterminals(self):
+    def get_nonterminals(self)->list[NonTerminal]:
         s = self.get_symbols()
         res = []
         for el in s:

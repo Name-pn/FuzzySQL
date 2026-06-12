@@ -6,7 +6,7 @@ from libraries.Environment import Environment
 from libraries.Extension import ExtensionCursor
 from libraries.FunctionHub import FunctionHub
 
-#from libraries.Grammar.CurrentGr import gr
+from libraries.Grammar.CurrentGr import gr
 from libraries.Grammar.Grammar import Grammar
 from libraries.LALR.LALRAnalyzerCST import LALRAnalyzerCST
 from libraries.Lexer import SQLLexer
@@ -25,7 +25,7 @@ cursor.set_fh(fh)
 cursor.set_table(table)
 #print(gr)
 # parser = LALRAnalyzer(gr)
-test_string = "FSELECT * FROM table_speed WHERE fv:high = speed or speed = fv:medium;" #"add high_number (999, 1001, 1111, 1200);" \
+test_string = "SELECT * FROM table_speed WHERE fv:high = fc:speed ;" #"add high_number (999, 1001, 1111, 1200);" \
               #"modify high_number (10, 10, 11, 12);" \
               #"remove high_number;"#"ALTER TABLE table1 MODIFY (column1 VARCHAR(10) NULL, column2 INTEGER NOT NULL, column3 REAL DEFAULT NULL UNIQUE);"
 lexer = SQLLexer(table)

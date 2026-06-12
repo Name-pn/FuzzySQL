@@ -26,13 +26,14 @@ class Environment():
         self.table['columnsuffix'] = '_f'
 
     def get(self, key):
-        if self.table.get(key) is None:
+        local = self.table.get(key)
+        if local is None:
             if self.prev is not None:
                 return self.prev.get(key)
             else:
                 return None
         else:
-            return self.table[key]
+            return local
 
     def put(self, key, value):
         self.table[key] = value

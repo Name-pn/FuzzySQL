@@ -1,4 +1,4 @@
-from libraries.Symbol.Epsilon import Epsilon
+from libraries.Symbol.Epsilon import Epsilon, EPSILON
 from libraries.Symbol.Symbol import Symbol
 
 class ProductionBody():
@@ -15,7 +15,7 @@ class ProductionBody():
         return res[:-1]
 
     def __len__(self):
-        if len(self.arr) == 1:
-            if self.arr[0] == Epsilon():
-                return 0
+        #if len(self.arr) == 1:
+        if self.arr[0] == EPSILON:
+            return 0
         return len(self.arr)

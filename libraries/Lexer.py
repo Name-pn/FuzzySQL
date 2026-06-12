@@ -94,19 +94,19 @@ class SQLLexer():
 
         for match in self._regex.finditer(text):
             # Определяем, какая группа сработала
-            for group_name, value in match.groupdict().items():
-                if value is not None:
-                    token_type, is_literal, is_ignored = self._token_info[group_name]
+            group_name = match.lastgroup
+            value = match.group(group_name)
+            token_type, is_literal, is_ignored = self._token_info[group_name]
 
-                    # Пропускаем игнорируемые токены
-                    if is_ignored:
-                        break
+            # Пропускаем игнорируемые токены
+            if is_ignored:
+                continue
 
-                    # Создаём соответствующий токен
-                    if is_literal:
-                        tokens.append(LTerminal(value, token_type))
-                    else:
-                        tokens.append(Terminal(token_type))
+            # Создаём соответствующий токен
+            if is_literal:
+                tokens.append(LTerminal(value, token_type))
+            else:
+                tokens.append(Terminal(token_type))
 
         return tokens
 

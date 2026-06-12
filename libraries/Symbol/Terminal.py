@@ -60,6 +60,7 @@ class TokenType(Enum):
     NULL = auto()
     UPDATE = auto()
     DELETE = auto()
+    ON = auto()
 
     # Пробельные символы (игнорируем)
     SPACE = auto()
@@ -118,8 +119,9 @@ class TokenSpecification:
     """
 
     # Базовые паттерны (для переиспользования)
-    _KEYWORDS = {
+    KEYWORDS = {
         TokenType.ADD: r"ADD",
+        TokenType.ON: r"ON",
         TokenType.FSELECT: r"FSELECT",
         TokenType.SELECT: r"SELECT",
         TokenType.FROM: r"FROM",
@@ -169,7 +171,7 @@ class TokenSpecification:
     DEFINITIONS = [
         # Ключевые слова (должны идти до ID)
         *[TokenDefinition(type, rf"\b{pattern}\b")
-          for type, pattern in _KEYWORDS.items()],
+          for type, pattern in KEYWORDS.items()],
 
         # Типы данных
         TokenDefinition(TokenType.TYPE, rf"\b(?:{_SQL_TYPES})\b", is_literal=True),

@@ -42,12 +42,12 @@ SelectWhere -> ε
 SelectWhere -> where Expr
 TableRefs -> TableRefs comma TableRef
 TableRefs -> TableRef
-TableRef -> Name cross join TableRef
+TableRef -> TableRef cross join Name
 TableRef -> Name
-TableRef -> Name inner join TableRef
-TableRef -> Name left OptionalOuter join TableRef
-TableRef -> Name right OptionalOuter join TableRef
-TableRef -> Name full OptionalOuter join TableRef
+TableRef -> TableRef inner join Name on Expr
+TableRef -> TableRef left OptionalOuter join Name on Expr
+TableRef -> TableRef right OptionalOuter join Name on Expr
+TableRef -> TableRef full OptionalOuter join Name on Expr
 OptionalOuter -> outer
 OptionalOuter -> ε
 ExprList -> Expr comma ExprList
