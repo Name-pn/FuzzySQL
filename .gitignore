@@ -5,10 +5,14 @@ tmp.xlsx
 test.png
 tmp.txt
 __pycache__/
+build/
 *.py[cod]
 *.pyo
 *.pyd
 *.pyc
+.vscode/
+old/
+table*
 
 # VSCodeSync local cache (not source of truth)
 .vscode/vscodesync.json

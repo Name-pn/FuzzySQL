@@ -1,0 +1,6 @@
+[submodule "external/LexerLib"]
+	path = external/LexerLib
+	url = https://github.com/Name-pn/lexerLib.git
+[submodule "external/ParserLib"]
+	path = external/ParserLib
+	url = https://github.com/Name-pn/ParserLib.git

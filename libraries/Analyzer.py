@@ -106,6 +106,29 @@ class Analyzer(abc.ABC):
             else:
                 self.clear()
                 raise Exception(f"Ошибка анализа в позиции {index}")
+            
+    def recognize_by_stream(self, get_symbol):
+        self.number = 0
+        self.symbols = []
+        symbol = get_symbol()
+        while True:
+            state = self.stack[-1]
+            if symbol is None:
+                symbol = END_SYMBOL
+            action = self.action_dict[symbol][state]
+            if action.type == CommandType.SHIFT:
+                self._on_shift(state, symbol)
+                self.stack.append(action.value)
+                symbol = get_symbol()
+            elif action.type == CommandType.REDUCE:
+                self._on_reduce(state, symbol, action)
+                self.reduce_states(state, symbol, action)
+            elif action.type == CommandType.ACCEPT:
+                self.clear()
+                break
+            else:
+                self.clear()
+                raise Exception(f"Ошибка анализа в позиции {index}")
 
     def recognize_debug(self, tokens: list[Symbol]):
         index = 0

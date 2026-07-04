@@ -1,6 +1,7 @@
 import time
 import tracemalloc
 from pympler import asizeof
+from pprint import pprint
 
 # ANTLR4 импорты
 
@@ -9,6 +10,10 @@ from antlr4.error.ErrorStrategy import DefaultErrorStrategy
 
 from parser_data.gen.SqlLexer import SqlLexer as ANTLRSqlLexer
 from parser_data.gen.SqlParser import SqlParser
+
+from lexer_lib import RegexNFA, Match
+from libraries.Symbol.LTerminal import LTerminal
+from libraries.Symbol.Terminal import Terminal, TokenType, TokenSpecification
 
 # Твои импорты
 from libraries.Environment import Environment
@@ -25,6 +30,17 @@ LALR_PARSER = LALRAnalyzerCST(GRAMMAR_TABLE)
 TABLE = Environment()
 TABLE.load("./parser_data/conf.pkl")
 LEXER = SQLLexer(TABLE)
+MY_LEXER = RegexNFA('test_lexer.txt')
+SPECIFICATION = TokenSpecification.get_patterns(TABLE)
+SPECIFICATION = sorted(SPECIFICATION, key=lambda x: x[0].value)
+TOKEN_INFO = {}
+for token_type, pattern, is_literal, is_ignored in SPECIFICATION:
+    # Создаём уникальное имя группы
+    group_name = f"t{token_type.value}"
+
+    # Сохраняем информацию о токене для этой группы
+    TOKEN_INFO[group_name] = (token_type, is_literal, is_ignored)
+IGNORED = {48, 47}
 
 # ANTLR парсер (инициализация лёгкая, без таблиц)
 # Но тоже создадим глобальный экземпляр для честности
@@ -77,10 +93,37 @@ def antlr_parse(sql_text):
 
 
 def lalr_parse(sql_text):
-    """Твой LALR(1) парсер (переиспользует таблицу из глобальной переменной)"""
-    lexer = SQLLexer(TABLE)
+    lexer = LEXER
     tokens = lexer.tokenize(sql_text)
+    #print(tokens, "lalr")
     tree = LALR_PARSER.parse(tokens)  # используем глобальный экземпляр
+    return tree
+
+def match_to_lexem(text: str, lexer):
+    match = lexer.next()
+    while match is not None and match.pattern_id in IGNORED:
+        match = lexer.next()
+    if match is None:
+        return None
+    match_type = TokenType(match.pattern_id)
+    if not TOKEN_INFO[f"t{match_type.value}"][1]:
+        return Terminal(match_type)
+    return LTerminal(text[match.start_index:match.end_index], match_type)
+
+def my_lexer_parse(sql_text):
+    sql_text = sql_text.lower()
+    lexer = MY_LEXER
+    tokens = []
+    #pprint(SPECIFICATION, indent=2, width=80)
+    lexer.setAnalize(sql_text)
+    # token = lexer.next()
+    # while token is not None:
+    #     if not token.pattern_id in IGNORED:
+    #         tokens.append(match_to_lexem(token, sql_text))
+    #     token = lexer.next()
+    #print(tokens)
+    #exit(0)
+    tree = LALR_PARSER.parse_by_stream(lambda: match_to_lexem(sql_text, lexer))  # используем глобальный экземпляр
     return tree
 
 
@@ -190,10 +233,13 @@ def run_complete_benchmark():
         antlr_time = benchmark_parser(antlr_parse, sql)
         antlr_mem = measure_memory(antlr_parse, sql) if antlr_time else None
 
-        # Твой LALR
         print("  ⏳ Замер LALR(1)...")
         lalr_time = benchmark_parser(lalr_parse, sql)
         lalr_mem = measure_memory(lalr_parse, sql) if lalr_time else None
+
+        print("  ⏳ Замер моего лексера LALR(1)...")
+        my_lexer_time = benchmark_parser(my_lexer_parse, sql)
+        my_lexer_mem = measure_memory(my_lexer_parse, sql) if lalr_time else None
 
         # Результаты
         if antlr_time and lalr_time:
@@ -206,8 +252,10 @@ def run_complete_benchmark():
             print(f"     ANTLR4:  {antlr_time['avg'] * 1000:.3f} мс (среднее), {antlr_mem:.2f} B")
             print(f"     LALR(1): {lalr_time['avg'] * 1000:.3f} мс (среднее), {lalr_mem:.2f} B")
             print(f"     {faster} быстрее в {speed_factor:.2f}x")
+            print(f"     my lexer {my_lexer_time['avg'] * 1000:.3f} мс (среднее), {my_lexer_mem:.2f} B")
 
             results[name] = {
+                'my_lexer': {'avg_ms': my_lexer_time['avg'] * 1000, 'memory_mb': my_lexer_mem},
                 'antlr': {'avg_ms': antlr_time['avg'] * 1000, 'memory_mb': antlr_mem},
                 'lalr': {'avg_ms': lalr_time['avg'] * 1000, 'memory_mb': lalr_mem},
                 'ratio': speed_ratio,
@@ -222,8 +270,10 @@ def run_complete_benchmark():
                 print(f"     ANTLR4:  - мс (среднее), - B")
                 print(f"     LALR(1): {lalr_time['avg'] * 1000:.3f} мс (среднее), {lalr_mem:.2f} B")
                 print(f"     {faster} быстрее в")
+                #print(f"     my lexer {my_lexer_time['avg'] * 1000:.3f} мс (среднее), {my_lexer_mem:.2f} B")
 
                 results[name] = {
+                    'my_lexer': {'avg_ms': my_lexer_time['avg'] * 1000, 'memory_mb': my_lexer_mem},
                     'lalr': {'avg_ms': lalr_time['avg'] * 1000, 'memory_mb': lalr_mem},
                     'faster': faster,
                     'ratio': 0,
@@ -236,8 +286,9 @@ def run_complete_benchmark():
                 print(f"\n  📈 РЕЗУЛЬТАТЫ:")
                 print(f"     ANTLR4:  {antlr_time['avg'] * 1000:.3f} мс (среднее), {antlr_mem:.2f} B")
                 print(f"     LALR(1): - мс (среднее), - B")
-
+                #print(f"     my lexer {my_lexer_time['avg'] * 1000:.3f} мс (среднее), {my_lexer_mem:.2f} B")
                 results[name] = {
+                    'my_lexer': {'avg_ms': my_lexer_time['avg'] * 1000, 'memory_mb': my_lexer_mem},
                     'antlr': {'avg_ms': antlr_time['avg'] * 1000, 'memory_mb': antlr_mem},
                     'faster': faster,
                     'ratio': 0,
@@ -252,29 +303,31 @@ def run_complete_benchmark():
     print("\n" + "=" * 60)
     print("📋 СВОДНАЯ ТАБЛИЦА СКОРОСТЕЙ")
     print("=" * 60)
-    print(f"{'Тест':<12} {'ANTLR4 (мс)':<15} {'LALR(1) (мс)':<15} {'Победитель':<20}")
-    print("-" * 62)
+    print(f"{'Тест':<12} {'ANTLR4 (мс)':<15} {'LALR(1) (мс)':<15} {'Победитель':<20} {"MY_LEXER":<15}")
+    print("-" * 77)
     for name, data in results.items():
         if 'error' in data:
-            print(f"{name:<12} {'ОШИБКА':<15} {'ОШИБКА':<15} {'-':<20}")
+            print(f"{name:<12} {'ОШИБКА':<15} {'ОШИБКА':<15} {'-':<20} {'ОШИБКА':<15}")
         else:
             antlr_ms = data['antlr']['avg_ms']
             lalr_ms = data['lalr']['avg_ms']
-            print(f"{name:<12} {antlr_ms:<15.3f} {lalr_ms:<15.3f} {data['faster']:<20}")
+            my_lexer = data['my_lexer']['avg_ms']
+            print(f"{name:<12} {antlr_ms:<15.3f} {lalr_ms:<15.3f} {data['faster']:<20} {my_lexer:<15.3f}")
 
     # Итоговая таблица
     print("\n" + "=" * 60)
     print("📋 СВОДНАЯ ТАБЛИЦА ПАМЯТИ")
     print("=" * 60)
-    print(f"{'Тест':<12} {'ANTLR4 (память)':<15} {'LALR(1) (память)':<15} {'Победитель':<20}")
-    print("-" * 62)
+    print(f"{'Тест':<12} {'ANTLR4 (память)':<15} {'LALR(1) (память)':<15} {'Победитель':<20} {"MY_LEXER":<15}")
+    print("-" * 77)
     for name, data in results.items():
         if 'error' in data:
-            print(f"{name:<12} {'ОШИБКА':<15} {'ОШИБКА':<15} {'-':<20}")
+            print(f"{name:<12} {'ОШИБКА':<15} {'ОШИБКА':<15} {'-':<20} {'ОШИБКА':<15}")
         else:
+            my_lexer = data['my_lexer']['memory_mb']
             antlr_mem = data['antlr']['memory_mb']
             lalr_mem = data['lalr']['memory_mb']
-            print(f"{name:<12} {bytes_to_vis_format(antlr_mem):<15} {bytes_to_vis_format(lalr_mem):<15} {data['smaller']:<20}")
+            print(f"{name:<12} {bytes_to_vis_format(antlr_mem):<15} {bytes_to_vis_format(lalr_mem):<15} {data['smaller']:<20} {bytes_to_vis_format(my_lexer):<15}")
 
     return results
 

@@ -21,3 +21,10 @@ class LALRAnalyzerCST(MixinCST, Analyzer):
         if len(self.parse_stack) != 1:
             raise Exception("В стеке не 1 нода")
         return self.parse_stack[0]
+    
+    def parse_by_stream(self, get_symbol):
+        self.parse_stack.clear()
+        self.recognize_by_stream(get_symbol=get_symbol)
+        if len(self.parse_stack) != 1:
+            raise Exception("В стеке не 1 нода")
+        return self.parse_stack[0]
